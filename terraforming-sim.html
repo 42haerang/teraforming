@@ -1,0 +1,1156 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>극한 생물 테라포밍 시뮬레이터</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #06080f;
+  --bg2: #0d1220;
+  --bg3: #141929;
+  --surface: #1a2035;
+  --surface2: #212840;
+  --border: rgba(255,255,255,0.07);
+  --border2: rgba(255,255,255,0.13);
+  --text: #e8eaf6;
+  --text2: #8892b0;
+  --text3: #4a5568;
+  --mars: #e8613a;
+  --mars2: #ff8c5a;
+  --europa: #4db8ff;
+  --europa2: #82cfff;
+  --enceladus: #a78bfa;
+  --enceladus2: #c4b5fd;
+  --custom: #34d399;
+  --custom2: #6ee7b7;
+  --co2: #f87171;
+  --o2: #34d399;
+  --ch4: #fbbf24;
+  --n2: #60a5fa;
+  --h2: #a78bfa;
+  --temp-color: #c084fc;
+  --press-color: #38bdf8;
+  --accent: #6366f1;
+  --glow: rgba(99,102,241,0.15);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Noto Sans KR', sans-serif;
+  font-weight: 400;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* Stars background */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    radial-gradient(1px 1px at 10% 15%, rgba(255,255,255,0.6) 0%, transparent 100%),
+    radial-gradient(1px 1px at 25% 40%, rgba(255,255,255,0.4) 0%, transparent 100%),
+    radial-gradient(1px 1px at 40% 8%, rgba(255,255,255,0.5) 0%, transparent 100%),
+    radial-gradient(1px 1px at 55% 55%, rgba(255,255,255,0.3) 0%, transparent 100%),
+    radial-gradient(1px 1px at 70% 20%, rgba(255,255,255,0.6) 0%, transparent 100%),
+    radial-gradient(1px 1px at 85% 70%, rgba(255,255,255,0.4) 0%, transparent 100%),
+    radial-gradient(1px 1px at 92% 35%, rgba(255,255,255,0.5) 0%, transparent 100%),
+    radial-gradient(1px 1px at 15% 80%, rgba(255,255,255,0.3) 0%, transparent 100%),
+    radial-gradient(1px 1px at 60% 85%, rgba(255,255,255,0.4) 0%, transparent 100%),
+    radial-gradient(1.5px 1.5px at 78% 5%, rgba(255,255,255,0.7) 0%, transparent 100%),
+    radial-gradient(1px 1px at 33% 62%, rgba(255,255,255,0.3) 0%, transparent 100%),
+    radial-gradient(1px 1px at 48% 30%, rgba(255,255,255,0.5) 0%, transparent 100%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.wrap { position: relative; z-index: 1; max-width: 1100px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
+
+/* Header */
+.header { text-align: center; margin-bottom: 2.5rem; }
+.header-label {
+  font-family: 'Space Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  color: var(--accent);
+  text-transform: uppercase;
+  margin-bottom: 0.75rem;
+  opacity: 0.8;
+}
+.header h1 {
+  font-size: clamp(22px, 4vw, 32px);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  background: linear-gradient(135deg, #e8eaf6 0%, #a5b4fc 50%, #818cf8 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  line-height: 1.2;
+  margin-bottom: 0.5rem;
+}
+.header-sub { font-size: 13px; color: var(--text2); }
+.header-authors { font-size: 12px; color: var(--text3); margin-top: 0.3rem; font-family: 'Space Mono', monospace; }
+
+/* Planet selector */
+.planet-tabs {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-bottom: 1.5rem;
+}
+.planet-tab {
+  position: relative;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 1rem 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: center;
+  overflow: hidden;
+}
+.planet-tab::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 0.2s;
+  border-radius: 14px;
+}
+.planet-tab:hover { border-color: var(--border2); transform: translateY(-2px); }
+.planet-tab.active { border-color: var(--tab-color); }
+.planet-tab.active::before { opacity: 1; background: radial-gradient(ellipse at top, color-mix(in srgb, var(--tab-color) 12%, transparent), transparent 70%); }
+
+.tab-icon { font-size: 28px; margin-bottom: 6px; display: block; }
+.tab-name { font-size: 13px; font-weight: 700; color: var(--tab-color); display: block; }
+.tab-desc { font-size: 10px; color: var(--text3); margin-top: 2px; line-height: 1.4; display: block; }
+.tab-active-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--tab-color);
+  margin: 6px auto 0;
+  display: none;
+  box-shadow: 0 0 8px var(--tab-color);
+}
+.planet-tab.active .tab-active-dot { display: block; }
+
+[data-planet="mars"] { --tab-color: var(--mars); }
+[data-planet="europa"] { --tab-color: var(--europa); }
+[data-planet="enceladus"] { --tab-color: var(--enceladus); }
+[data-planet="custom"] { --tab-color: var(--custom); }
+
+/* Main grid */
+.main-grid {
+  display: grid;
+  grid-template-columns: 340px 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+/* Cards */
+.card {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 1.25rem;
+}
+.card-title {
+  font-family: 'Space Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  color: var(--text3);
+  text-transform: uppercase;
+  margin-bottom: 1rem;
+}
+
+/* Env stats */
+.env-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.env-item {
+  background: var(--bg2);
+  border-radius: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+}
+.env-key { font-size: 10px; color: var(--text3); margin-bottom: 4px; font-family: 'Space Mono', monospace; }
+.env-val { font-size: 18px; font-weight: 700; font-family: 'Space Mono', monospace; }
+.env-unit { font-size: 10px; color: var(--text2); margin-left: 3px; font-weight: 400; }
+.env-bar-track { height: 2px; background: var(--border); border-radius: 1px; margin-top: 6px; }
+.env-bar-fill { height: 2px; border-radius: 1px; transition: width 0.6s ease; }
+
+/* Custom inputs */
+.custom-form { display: none; }
+.custom-form.visible { display: block; }
+.custom-form .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; }
+.form-item label { display: block; font-size: 10px; color: var(--text3); margin-bottom: 4px; font-family: 'Space Mono', monospace; }
+.form-item input[type=range] { width: 100%; accent-color: var(--custom); }
+.form-item .val { font-size: 12px; font-weight: 700; color: var(--custom); font-family: 'Space Mono', monospace; }
+
+/* Bio section */
+.bio-list { display: flex; flex-direction: column; gap: 6px; }
+.bio-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  cursor: pointer;
+  transition: all 0.15s;
+  position: relative;
+  overflow: hidden;
+}
+.bio-item::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 3px;
+  border-radius: 2px 0 0 2px;
+  background: var(--bio-color);
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.bio-item.active { border-color: color-mix(in srgb, var(--bio-color) 40%, transparent); background: color-mix(in srgb, var(--bio-color) 6%, var(--bg2)); }
+.bio-item.active::before { opacity: 1; }
+.bio-item:hover { border-color: var(--border2); }
+.bio-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--bio-color); flex-shrink: 0; }
+.bio-info { flex: 1; min-width: 0; }
+.bio-name { font-size: 12px; font-weight: 700; color: var(--text); }
+.bio-mech { font-size: 10px; color: var(--text2); margin-top: 1px; line-height: 1.3; }
+.bio-tag { font-size: 9px; padding: 2px 7px; border-radius: 4px; background: color-mix(in srgb, var(--bio-color) 18%, transparent); color: var(--bio-color); font-family: 'Space Mono', monospace; white-space: nowrap; }
+.bio-warn { font-size: 9px; color: #f59e0b; margin-top: 2px; }
+
+/* Pop bars */
+.pop-section { margin-top: 1rem; }
+.pop-row { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; }
+.pop-label { font-size: 10px; color: var(--text3); width: 80px; flex-shrink: 0; }
+.pop-track { flex: 1; height: 4px; background: var(--border); border-radius: 2px; }
+.pop-fill { height: 4px; border-radius: 2px; transition: width 0.6s ease; }
+.pop-count { font-size: 10px; font-family: 'Space Mono', monospace; color: var(--text2); width: 50px; text-align: right; flex-shrink: 0; }
+
+/* Atm display */
+.atm-display {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.atm-chip {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 8px;
+  text-align: center;
+}
+.atm-chip-name { font-size: 10px; color: var(--text3); font-family: 'Space Mono', monospace; margin-bottom: 4px; }
+.atm-chip-val { font-size: 20px; font-weight: 700; font-family: 'Space Mono', monospace; }
+.atm-chip-unit { font-size: 9px; color: var(--text2); }
+.atm-chip-bar { height: 2px; background: var(--border); border-radius: 1px; margin-top: 8px; }
+.atm-chip-fill { height: 2px; border-radius: 1px; transition: width 0.5s; }
+
+/* Status row */
+.status-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+.year-display {
+  font-family: 'Space Mono', monospace;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.02em;
+}
+.status-pill {
+  font-size: 11px;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  transition: all 0.3s;
+}
+.water-pill {
+  font-size: 11px;
+  padding: 4px 12px;
+  border-radius: 20px;
+  background: rgba(56,189,248,0.1);
+  border: 1px solid rgba(56,189,248,0.25);
+  color: var(--press-color);
+}
+.milestone-pill {
+  font-size: 11px;
+  padding: 4px 12px;
+  border-radius: 20px;
+  background: rgba(251,191,36,0.1);
+  border: 1px solid rgba(251,191,36,0.25);
+  color: #fbbf24;
+  display: none;
+}
+
+/* Chart */
+.chart-wrap { background: var(--bg3); border: 1px solid var(--border); border-radius: 16px; padding: 1.25rem; margin-bottom: 16px; }
+.chart-legend {
+  display: flex; gap: 14px; margin-bottom: 12px; flex-wrap: wrap;
+}
+.legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text2); }
+.legend-dot { width: 8px; height: 8px; border-radius: 50%; }
+.chart-canvas-wrap { position: relative; height: 200px; }
+
+/* Events */
+.events-wrap { background: var(--bg3); border: 1px solid var(--border); border-radius: 16px; padding: 1.25rem; margin-bottom: 16px; }
+.event-scroll { max-height: 130px; overflow-y: auto; display: flex; flex-direction: column; gap: 5px; }
+.event-scroll::-webkit-scrollbar { width: 3px; }
+.event-scroll::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+.event-row { display: flex; align-items: flex-start; gap: 10px; padding: 6px 8px; border-radius: 8px; font-size: 12px; }
+.event-row.good { background: rgba(52,211,153,0.06); }
+.event-row.warn { background: rgba(251,191,36,0.06); }
+.event-row.bad { background: rgba(248,113,113,0.06); }
+.event-yr { font-family: 'Space Mono', monospace; font-size: 10px; color: var(--text3); min-width: 55px; padding-top: 1px; }
+.event-txt { color: var(--text2); line-height: 1.4; }
+.event-row.good .event-txt { color: #6ee7b7; }
+.event-row.warn .event-txt { color: #fcd34d; }
+.event-row.bad .event-txt { color: #fca5a5; }
+
+/* Controls */
+.ctrl-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+.btn-run {
+  flex: 1;
+  background: var(--accent);
+  border: none;
+  border-radius: 12px;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  padding: 12px 20px;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: 'Noto Sans KR', sans-serif;
+  letter-spacing: 0.02em;
+  box-shadow: 0 4px 20px rgba(99,102,241,0.3);
+}
+.btn-run:hover { background: #818cf8; box-shadow: 0 4px 24px rgba(99,102,241,0.4); transform: translateY(-1px); }
+.btn-run:active { transform: scale(0.98); }
+.btn-reset {
+  background: var(--bg3);
+  border: 1px solid var(--border2);
+  border-radius: 12px;
+  color: var(--text2);
+  font-size: 13px;
+  padding: 12px 18px;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: 'Noto Sans KR', sans-serif;
+}
+.btn-reset:hover { border-color: var(--border2); background: var(--surface); color: var(--text); }
+
+.speed-wrap { display: flex; align-items: center; gap: 8px; }
+.speed-wrap label { font-size: 11px; color: var(--text3); white-space: nowrap; font-family: 'Space Mono', monospace; }
+.speed-wrap input[type=range] { width: 80px; accent-color: var(--accent); }
+.speed-wrap .sv { font-size: 12px; font-family: 'Space Mono', monospace; color: var(--text2); width: 24px; }
+
+/* Responsive */
+@media (max-width: 780px) {
+  .main-grid { grid-template-columns: 1fr; }
+  .planet-tabs { grid-template-columns: repeat(2, 1fr); }
+  .atm-display { grid-template-columns: repeat(3, 1fr); }
+}
+@media (max-width: 480px) {
+  .planet-tabs { grid-template-columns: repeat(2, 1fr); }
+  .atm-display { grid-template-columns: repeat(2, 1fr); }
+  .env-grid { grid-template-columns: 1fr 1fr; }
+}
+
+/* Organism compatibility badge */
+.compat-badge {
+  font-size: 9px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: 'Space Mono', monospace;
+  margin-left: auto;
+}
+.compat-high { background: rgba(52,211,153,0.15); color: #34d399; border: 1px solid rgba(52,211,153,0.3); }
+.compat-med { background: rgba(251,191,36,0.15); color: #fbbf24; border: 1px solid rgba(251,191,36,0.3); }
+.compat-low { background: rgba(248,113,113,0.15); color: #f87171; border: 1px solid rgba(248,113,113,0.3); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="header-label">극한 생물 우주생물학 탐구 시뮬레이터</div>
+    <h1>테라포밍 & 생명 가능성 시뮬레이션</h1>
+    <div class="header-sub">극한 생물의 생존 조건을 통한 외계 천체 테라포밍 조건 탐구</div>
+    <div class="header-authors">1307 박채우 · 1515 채태양 · 2309 장하림 · 2409 김태현</div>
+  </div>
+
+  <!-- Planet tabs -->
+  <div class="planet-tabs">
+    <div class="planet-tab active" data-planet="mars" onclick="selectPlanet('mars')">
+      <span class="tab-icon">🔴</span>
+      <span class="tab-name">화성</span>
+      <span class="tab-desc">표면 탐사 가능<br>극저온·방사선 환경</span>
+      <div class="tab-active-dot"></div>
+    </div>
+    <div class="planet-tab" data-planet="europa" onclick="selectPlanet('europa')">
+      <span class="tab-icon">🔵</span>
+      <span class="tab-name">유로파</span>
+      <span class="tab-desc">목성 위성<br>얼음 아래 지하 바다</span>
+      <div class="tab-active-dot"></div>
+    </div>
+    <div class="planet-tab" data-planet="enceladus" onclick="selectPlanet('enceladus')">
+      <span class="tab-icon">⚪</span>
+      <span class="tab-name">엔셀라두스</span>
+      <span class="tab-desc">토성 위성<br>간헐천·유기물 검출</span>
+      <div class="tab-active-dot"></div>
+    </div>
+    <div class="planet-tab" data-planet="custom" onclick="selectPlanet('custom')">
+      <span class="tab-icon">⚙️</span>
+      <span class="tab-name">사용자 설정</span>
+      <span class="tab-desc">환경 직접 설정<br>자유 실험</span>
+      <div class="tab-active-dot"></div>
+    </div>
+  </div>
+
+  <!-- Atm chips (top summary) -->
+  <div class="atm-display">
+    <div class="atm-chip">
+      <div class="atm-chip-name">CO₂</div>
+      <div class="atm-chip-val" id="v-co2" style="color:var(--co2)">—</div>
+      <div class="atm-chip-unit">%</div>
+      <div class="atm-chip-bar"><div class="atm-chip-fill" id="b-co2" style="background:var(--co2);width:0%"></div></div>
+    </div>
+    <div class="atm-chip">
+      <div class="atm-chip-name">O₂</div>
+      <div class="atm-chip-val" id="v-o2" style="color:var(--o2)">—</div>
+      <div class="atm-chip-unit">%</div>
+      <div class="atm-chip-bar"><div class="atm-chip-fill" id="b-o2" style="background:var(--o2);width:0%"></div></div>
+    </div>
+    <div class="atm-chip">
+      <div class="atm-chip-name">CH₄</div>
+      <div class="atm-chip-val" id="v-ch4" style="color:var(--ch4)">—</div>
+      <div class="atm-chip-unit">%</div>
+      <div class="atm-chip-bar"><div class="atm-chip-fill" id="b-ch4" style="background:var(--ch4);width:0%"></div></div>
+    </div>
+    <div class="atm-chip">
+      <div class="atm-chip-name">온도</div>
+      <div class="atm-chip-val" id="v-temp" style="color:var(--temp-color)">—</div>
+      <div class="atm-chip-unit">°C</div>
+      <div class="atm-chip-bar"><div class="atm-chip-fill" id="b-temp" style="background:var(--temp-color);width:0%"></div></div>
+    </div>
+    <div class="atm-chip">
+      <div class="atm-chip-name">대기압</div>
+      <div class="atm-chip-val" id="v-press" style="color:var(--press-color)">—</div>
+      <div class="atm-chip-unit">kPa</div>
+      <div class="atm-chip-bar"><div class="atm-chip-fill" id="b-press" style="background:var(--press-color);width:0%"></div></div>
+    </div>
+  </div>
+
+  <!-- Status row -->
+  <div class="status-row">
+    <div class="year-display" id="year-disp">Year 0</div>
+    <div class="status-pill" id="status-pill" style="background:rgba(99,102,241,0.1);border:1px solid rgba(99,102,241,0.25);color:#a5b4fc;">초기 상태</div>
+    <div class="water-pill" id="water-pill">액체 수분: 없음</div>
+    <div class="milestone-pill" id="milestone-pill"></div>
+  </div>
+
+  <!-- Main grid -->
+  <div class="main-grid">
+
+    <!-- Left: env + bio -->
+    <div style="display:flex;flex-direction:column;gap:12px;">
+
+      <!-- Environment card -->
+      <div class="card">
+        <div class="card-title">초기 환경 조건 (보고서 4장 데이터)</div>
+        <div class="env-grid" id="env-grid">
+          <!-- filled by JS -->
+        </div>
+        <!-- Custom form -->
+        <div class="custom-form" id="custom-form">
+          <div style="margin-top:12px;border-top:1px solid var(--border);padding-top:12px;">
+            <div class="card-title" style="margin-bottom:8px;">직접 설정</div>
+            <div class="form-grid">
+              <div class="form-item">
+                <label>표면 온도 (<span id="c-temp-v">-63</span>°C)</label>
+                <input type="range" id="c-temp" min="-220" max="50" value="-63" oninput="updateCustom()">
+              </div>
+              <div class="form-item">
+                <label>대기압 (<span id="c-press-v">0.6</span> kPa)</label>
+                <input type="range" id="c-press" min="0.1" max="200" step="0.1" value="0.6" oninput="updateCustom()">
+              </div>
+              <div class="form-item">
+                <label>초기 CO₂ (<span id="c-co2-v">95</span>%)</label>
+                <input type="range" id="c-co2" min="0" max="100" value="95" oninput="updateCustom()">
+              </div>
+              <div class="form-item">
+                <label>방사선 강도 (<span id="c-rad-v">중간</span>)</label>
+                <input type="range" id="c-rad" min="1" max="5" step="1" value="3" oninput="updateCustom()">
+              </div>
+              <div class="form-item">
+                <label>H₂ 가용성 (<span id="c-h2-v">낮음</span>)</label>
+                <input type="range" id="c-h2" min="1" max="5" step="1" value="1" oninput="updateCustom()">
+              </div>
+              <div class="form-item">
+                <label>황 화합물 (<span id="c-sul-v">낮음</span>)</label>
+                <input type="range" id="c-sul" min="1" max="5" step="1" value="1" oninput="updateCustom()">
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bio card -->
+      <div class="card">
+        <div class="card-title">극한 생물 투입 선택 (보고서 3장)</div>
+        <div class="bio-list" id="bio-list">
+          <!-- filled by JS -->
+        </div>
+        <div class="pop-section">
+          <div class="card-title" style="margin-bottom:6px;">집단 규모</div>
+          <div id="pop-bars"></div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Right: chart + events -->
+    <div style="display:flex;flex-direction:column;gap:12px;">
+
+      <!-- Controls -->
+      <div class="ctrl-bar">
+        <button class="btn-run" id="run-btn" onclick="toggleRun()">▶ 시뮬레이션 시작</button>
+        <button class="btn-reset" onclick="resetSim()">초기화</button>
+        <div class="speed-wrap">
+          <label>속도</label>
+          <input type="range" id="speed-sl" min="1" max="6" value="3" step="1" oninput="updateSpeed(this.value)">
+          <span class="sv" id="speed-v">×3</span>
+        </div>
+      </div>
+
+      <!-- Chart -->
+      <div class="chart-wrap">
+        <div class="card-title" style="margin-bottom:0">대기 조성 & 환경 변화</div>
+        <div class="chart-legend">
+          <div class="legend-item"><div class="legend-dot" style="background:var(--co2)"></div>CO₂ %</div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--o2)"></div>O₂ %</div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--ch4)"></div>CH₄ %</div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--temp-color)"></div>온도 °C</div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--press-color)"></div>압력 kPa</div>
+        </div>
+        <div class="chart-canvas-wrap">
+          <canvas id="atmChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Donut chart row -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div class="chart-wrap" style="margin-bottom:0">
+          <div class="card-title">현재 대기 조성</div>
+          <div style="position:relative;height:140px;">
+            <canvas id="donutChart"></canvas>
+          </div>
+        </div>
+        <div class="chart-wrap" style="margin-bottom:0">
+          <div class="card-title">생명 가능성 지수</div>
+          <div style="position:relative;height:140px;">
+            <canvas id="radarChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Events -->
+      <div class="events-wrap">
+        <div class="card-title">시뮬레이션 이벤트 로그</div>
+        <div class="event-scroll" id="event-list"></div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ── Planet presets (from report section 4 & 5.1) ──
+const PRESETS = {
+  mars: {
+    name: '화성',
+    color: 'var(--mars)',
+    temp: -63, pressure: 0.6,
+    co2: 95.3, o2: 0.1, ch4: 0.0, n2: 2.6,
+    radiation: 4,   // high — no magnetosphere
+    h2avail: 1,
+    sulfur: 2,
+    liquidWater: false,
+    subOcean: false,
+    hydrothermal: false,
+    note: '평균 -63°C, 대기압 0.006atm, 자기장 無 → 강한 우주방사선',
+    compatBio: ['dein','cryo','meth'],
+    incompatBio: ['photo','chemo','sulf_red'],
+  },
+  europa: {
+    name: '유로파 (지하 바다)',
+    color: 'var(--europa)',
+    temp: -160, pressure: 100,   // subsurface ocean: ~100+ MPa → using kPa scale relative
+    co2: 10, o2: 5, ch4: 0.5, n2: 5,
+    radiation: 5,  // Jupiter radiation belt
+    h2avail: 3,
+    sulfur: 3,
+    liquidWater: true,
+    subOcean: true,
+    hydrothermal: true,
+    note: '표면 -160°C, 얼음층 100km 아래 짠 바다 (지구 바다 2배) — 조석력 내부 열',
+    compatBio: ['chemo','sulf_red','piezophile'],
+    incompatBio: ['photo','cryo'],
+  },
+  enceladus: {
+    name: '엔셀라두스 (지하 바다)',
+    color: 'var(--enceladus)',
+    temp: -200, pressure: 50,
+    co2: 3, o2: 0, ch4: 4, n2: 20,
+    radiation: 2,
+    h2avail: 5,    // H₂ detected in plumes (Cassini)
+    sulfur: 4,
+    liquidWater: true,
+    subOcean: true,
+    hydrothermal: true,
+    note: '표면 -200°C / Cassini 남극 간헐천 — CH₄·H₂·유기물 검출, 내부 열수구 가능',
+    compatBio: ['meth','chemo','sulf_red','piezophile'],
+    incompatBio: ['photo','cryo'],
+  },
+  custom: {
+    name: '사용자 설정',
+    color: 'var(--custom)',
+    temp: -63, pressure: 0.6,
+    co2: 95, o2: 0.1, ch4: 0, n2: 3,
+    radiation: 3,
+    h2avail: 1,
+    sulfur: 1,
+    liquidWater: false,
+    subOcean: false,
+    hydrothermal: false,
+    note: '사용자 정의 환경 — 슬라이더로 조절하세요',
+    compatBio: [],
+    incompatBio: [],
+  }
+};
+
+const ORGANISMS = [
+  { id:'photo',     name:'광합성 미생물',     mech:'CO₂ → O₂ 변환 (원시 지구 시아노박테리아 메커니즘)', color:'#34d399', tag:'광합성', minTemp:-15, maxTemp:45, needsLight:true },
+  { id:'meth',      name:'메탄 생성균',        mech:'CO₂ + H₂ → CH₄ 생성 → 온실효과로 온도 상승', color:'#fbbf24', tag:'메탄생성', minTemp:-60, maxTemp:100, needsH2:true },
+  { id:'cryo',      name:'사이크로박터 (극저온)',mech:'불포화지방산 세포막 — 극저온에서 유동성 유지', color:'#60a5fa', tag:'극저온', minTemp:-80, maxTemp:10 },
+  { id:'dein',      name:'데이노코쿠스',        mech:'DNA 손상 고속 복구 — 방사선 1500× 생존', color:'#f472b6', tag:'방사선 저항', radiation:true },
+  { id:'chemo',     name:'화학합성 미생물',     mech:'H₂S 산화 → 유기물 합성 (열수구 생태계 기반)', color:'#a78bfa', tag:'화학합성', sulfur:true },
+  { id:'sulf_red',  name:'황산염 환원균',       mech:'황산염 → 에너지 획득, 무산소 환경 대사', color:'#fb923c', tag:'무산소', anaerobic:true },
+  { id:'piezophile',name:'심해 고압 생물',      mech:'압력 강한 세포막 구조, 고압 안정 효소 (셰와넬라 등)', color:'#38bdf8', tag:'고압', highPressure:true },
+];
+
+// ── State ──
+let currentPlanet = 'mars';
+let state = {};
+let bio = {};
+let pop = {};
+let running = false;
+let timer = null;
+let speedMs = 500;
+let history = { labels:[], co2:[], o2:[], ch4:[], temp:[], press:[] };
+let eventsLog = [];
+let chart = null, donut = null, radar = null;
+let milestones = new Set();
+
+function getPreset(id) {
+  if (id === 'custom') return buildCustomPreset();
+  return JSON.parse(JSON.stringify(PRESETS[id]));
+}
+
+function buildCustomPreset() {
+  const p = JSON.parse(JSON.stringify(PRESETS.custom));
+  p.temp = parseFloat(document.getElementById('c-temp')?.value ?? -63);
+  p.pressure = parseFloat(document.getElementById('c-press')?.value ?? 0.6);
+  p.co2 = parseFloat(document.getElementById('c-co2')?.value ?? 95);
+  p.radiation = parseInt(document.getElementById('c-rad')?.value ?? 3);
+  p.h2avail = parseInt(document.getElementById('c-h2')?.value ?? 1);
+  p.sulfur = parseInt(document.getElementById('c-sul')?.value ?? 1);
+  p.liquidWater = p.temp > -10 && p.pressure > 0.61;
+  p.subOcean = false;
+  p.hydrothermal = p.sulfur >= 3;
+  p.o2 = 100 - p.co2 - 5;
+  p.n2 = 3;
+  p.ch4 = 0;
+  return p;
+}
+
+function initState() {
+  const preset = getPreset(currentPlanet);
+  state = {
+    year: 0,
+    co2: preset.co2, o2: preset.o2, ch4: preset.ch4, n2: preset.n2,
+    temp: preset.temp, pressure: preset.pressure,
+    radiation: preset.radiation,
+    h2avail: preset.h2avail,
+    sulfur: preset.sulfur,
+    liquidWater: preset.liquidWater,
+    subOcean: preset.subOcean,
+    hydrothermal: preset.hydrothermal,
+  };
+  bio = {};
+  pop = {};
+  ORGANISMS.forEach(o => { bio[o.id] = false; pop[o.id] = 0; });
+}
+
+function selectPlanet(id) {
+  if (running) { toggleRun(); }
+  currentPlanet = id;
+  document.querySelectorAll('.planet-tab').forEach(t => t.classList.toggle('active', t.dataset.planet === id));
+  document.getElementById('custom-form').classList.toggle('visible', id === 'custom');
+  milestones = new Set();
+  history = { labels:[], co2:[], o2:[], ch4:[], temp:[], press:[] };
+  eventsLog = [];
+  initState();
+  renderEnvGrid();
+  renderBioList();
+  renderPopBars();
+  pushHistory();
+  updateDisplay();
+  clearEventList();
+  addEvent(0, `${PRESETS[id].name} 환경 로드. ${PRESETS[id].note}`, '');
+  if (chart) { chart.data.labels=[]; chart.data.datasets.forEach(d=>d.data=[]); chart.update(); }
+  updateDonut();
+  updateRadar();
+}
+
+function renderEnvGrid() {
+  const preset = PRESETS[currentPlanet];
+  const rows = [
+    { key:'표면 온도', val: preset.temp + '°C', color:'var(--temp-color)', pct: Math.min(100, Math.max(0,(preset.temp+220)/270*100)) },
+    { key:'대기압',   val: preset.pressure + ' kPa', color:'var(--press-color)', pct: Math.min(100, preset.pressure/200*100) },
+    { key:'초기 CO₂', val: preset.co2 + '%', color:'var(--co2)', pct: preset.co2 },
+    { key:'방사선',   val: '★'.repeat(preset.radiation), color:'#f472b6', pct: preset.radiation/5*100 },
+    { key:'H₂ 가용', val: '▮'.repeat(preset.h2avail) + '▯'.repeat(5-preset.h2avail), color:'var(--h2)', pct: preset.h2avail/5*100 },
+    { key:'황 화합물', val: '▮'.repeat(preset.sulfur) + '▯'.repeat(5-preset.sulfur), color:'#fb923c', pct: preset.sulfur/5*100 },
+  ];
+  document.getElementById('env-grid').innerHTML = rows.map(r=>`
+    <div class="env-item">
+      <div class="env-key">${r.key}</div>
+      <div class="env-val" style="color:${r.color};font-size:14px;">${r.val}</div>
+      <div class="env-bar-track"><div class="env-bar-fill" style="width:${r.pct}%;background:${r.color}"></div></div>
+    </div>
+  `).join('');
+}
+
+function getCompatClass(orgId) {
+  const preset = PRESETS[currentPlanet];
+  if (preset.compatBio && preset.compatBio.includes(orgId)) return 'compat-high';
+  if (preset.incompatBio && preset.incompatBio.includes(orgId)) return 'compat-low';
+  return 'compat-med';
+}
+function getCompatLabel(orgId) {
+  const c = getCompatClass(orgId);
+  if (c === 'compat-high') return '적합';
+  if (c === 'compat-low') return '부적합';
+  return '조건부';
+}
+
+function renderBioList() {
+  document.getElementById('bio-list').innerHTML = ORGANISMS.map(o => `
+    <div class="bio-item ${bio[o.id]?'active':''}" id="bio-${o.id}" style="--bio-color:${o.color}" onclick="toggleBio('${o.id}')">
+      <div class="bio-dot"></div>
+      <div class="bio-info">
+        <div class="bio-name">${o.name}</div>
+        <div class="bio-mech">${o.mech}</div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;">
+        <span class="bio-tag" style="--bio-color:${o.color}">${o.tag}</span>
+        <span class="compat-badge ${getCompatClass(o.id)}">${getCompatLabel(o.id)}</span>
+      </div>
+    </div>
+  `).join('');
+  renderPopBars();
+}
+
+function renderPopBars() {
+  document.getElementById('pop-bars').innerHTML = ORGANISMS.map(o=>`
+    <div class="pop-row">
+      <div class="pop-label">${o.name.split(' ')[0]}</div>
+      <div class="pop-track"><div class="pop-fill" id="pf-${o.id}" style="width:${pop[o.id]}%;background:${o.color}"></div></div>
+      <div class="pop-count" id="pc-${o.id}">${pop[o.id]<1?'없음':pop[o.id]<20?'초기':pop[o.id]<60?'성장':'대규모'}</div>
+    </div>
+  `).join('');
+}
+
+function toggleBio(id) {
+  bio[id] = !bio[id];
+  const el = document.getElementById('bio-' + id);
+  el.classList.toggle('active', bio[id]);
+  if (bio[id]) {
+    pop[id] = 1;
+    addEvent(state.year, `${ORGANISMS.find(o=>o.id===id).name} 투입 — 집단 형성 시작`, 'good');
+  } else {
+    pop[id] = 0;
+    addEvent(state.year, `${ORGANISMS.find(o=>o.id===id).name} 활동 중단`, 'warn');
+  }
+  updatePopBars();
+}
+
+function updatePopBars() {
+  ORGANISMS.forEach(o => {
+    const pf = document.getElementById('pf-'+o.id);
+    const pc = document.getElementById('pc-'+o.id);
+    if (pf) pf.style.width = Math.min(100, pop[o.id]) + '%';
+    if (pc) pc.textContent = pop[o.id]<1?'없음':pop[o.id]<20?'초기':pop[o.id]<60?'성장':'대규모';
+  });
+}
+
+// ── Simulation step ──
+function step() {
+  state.year += 5;
+
+  const radShield = bio.dein ? 0.6 : 1.0;  // deinococcus reduces radiation damage
+  const radPenalty = (state.radiation * radShield);
+
+  // Photosynthesis (needs light + not too cold + not too much radiation)
+  if (bio.photo) {
+    const lightOk = !state.subOcean;
+    const tempOk = state.temp > -20 && state.temp < 50;
+    const radOk = radPenalty < 3.5;
+    const surv = (lightOk?1:0) * (tempOk?1:0.1) * (radOk?1:0.3);
+    if (surv > 0.3) {
+      pop.photo = Math.min(100, pop.photo * (1 + 0.07*surv));
+      const eff = pop.photo * 0.003 * surv;
+      state.co2 = Math.max(0, state.co2 - eff);
+      state.o2  = Math.min(30, state.o2 + eff * 0.95);
+      state.pressure += eff * 0.005;
+    } else {
+      pop.photo = Math.max(0, pop.photo * 0.88);
+      if (surv < 0.1 && pop.photo < 5) { pop.photo = 0; bio.photo = false; addEvent(state.year,'광합성 미생물 — 환경 부적합으로 멸종','bad'); }
+    }
+  }
+
+  // Methanogenesis (needs H₂ + CO₂, works in anaerobic)
+  if (bio.meth) {
+    const h2ok = state.h2avail >= 2;
+    const surv = h2ok ? 1.0 : 0.4;
+    pop.meth = Math.min(100, pop.meth * (1 + 0.065*surv));
+    const eff = pop.meth * 0.004 * surv;
+    state.co2 = Math.max(0, state.co2 - eff * 0.6);
+    state.ch4 = Math.min(20, state.ch4 + eff * 0.85);
+    // CH₄ greenhouse warming
+    state.temp = Math.min(30, state.temp + eff * 0.9);
+    state.pressure += eff * 0.015;
+    // H₂ depletion
+    if (state.h2avail > 1 && state.year % 50 === 0) state.h2avail = Math.max(1, state.h2avail - 0.3);
+  }
+
+  // Cryophiles (thrive in cold, die above 10°C)
+  if (bio.cryo) {
+    const tempOk = state.temp < 10 && state.temp > -85;
+    const surv = tempOk ? 1.0 : 0.2;
+    pop.cryo = Math.min(80, pop.cryo * (1 + 0.04*surv));
+    if (state.temp > 15) { pop.cryo = Math.max(0, pop.cryo * 0.7); }
+    // Cryophiles stabilize icy surfaces slightly — minor pressure contrib
+    state.pressure += pop.cryo * 0.0002;
+  }
+
+  // Deinococcus — mainly support; alone they just grow
+  if (bio.dein) {
+    pop.dein = Math.min(60, pop.dein * (1 + 0.03));
+  }
+
+  // Chemosynthesis (needs sulfur + liquid water region)
+  if (bio.chemo) {
+    const sulfOk = state.sulfur >= 2;
+    const waterOk = state.liquidWater || state.subOcean || state.hydrothermal;
+    const surv = (sulfOk?1:0.2) * (waterOk?1:0.3);
+    pop.chemo = Math.min(100, pop.chemo * (1 + 0.055*surv));
+    const eff = pop.chemo * 0.002 * surv;
+    state.co2 = Math.min(state.co2 + eff * 0.1, 100); // releases CO₂
+    state.pressure += eff * 0.01;
+    state.o2 = Math.min(30, state.o2 + eff * 0.3);
+  }
+
+  // Sulfate reducers (anaerobic, needs sulfur)
+  if (bio.sulf_red) {
+    const sulfOk = state.sulfur >= 1;
+    pop.sulf_red = Math.min(80, pop.sulf_red * (1 + 0.045 * (sulfOk?1:0.3)));
+    state.pressure += pop.sulf_red * 0.0003;
+    if (state.sulfur > 1 && state.year % 100 === 0) state.sulfur = Math.max(1, state.sulfur - 0.2);
+  }
+
+  // Piezophile (needs high pressure)
+  if (bio.piezophile) {
+    const pressOk = state.pressure > 20;
+    const surv = pressOk ? 1.0 : 0.2;
+    pop.piezophile = Math.min(80, pop.piezophile * (1 + 0.04*surv));
+    state.pressure += pop.piezophile * 0.001 * surv;
+  }
+
+  // Clamp
+  state.co2 = Math.max(0, Math.min(100, state.co2));
+  state.o2  = Math.max(0, Math.min(100, state.o2));
+  state.ch4 = Math.max(0, Math.min(100, state.ch4));
+  state.temp = Math.max(-250, Math.min(100, state.temp));
+
+  // Liquid water update
+  state.liquidWater = state.temp > -10 && state.pressure > 0.61;
+
+  checkMilestones();
+  updatePopBars();
+  pushHistory();
+  updateDisplay();
+
+  if (state.year >= 600) {
+    clearInterval(timer); running = false;
+    document.getElementById('run-btn').textContent = '▶ 다시 시작';
+    addEvent(state.year, '600년 시뮬레이션 완료.', '');
+  }
+}
+
+function checkMilestones() {
+  const ms = [
+    { key:'o2_1',   cond: state.o2 > 1,   msg: 'O₂ 1% 돌파 — 원시 대기 형성 시작', type:'good' },
+    { key:'o2_5',   cond: state.o2 > 5,   msg: 'O₂ 5% 도달 — 복잡 생명체 가능 범위', type:'good' },
+    { key:'o2_21',  cond: state.o2 > 20,  msg: 'O₂ 21% — 지구 대기 수준 달성!', type:'good' },
+    { key:'temp0',  cond: state.temp > 0,  msg: '영상 온도 돌파 — 액체 물 이론적 가능', type:'good' },
+    { key:'temp_20',cond: state.temp > -20,msg: '-20°C 초과 — 극지방 얼음 용해 시작', type:'good' },
+    { key:'ch4_3',  cond: state.ch4 > 3,  msg: 'CH₄ 3% 초과 — 온실효과 가속화', type:'warn' },
+    { key:'co2_50', cond: state.co2 < 50, msg: 'CO₂ 50% 미만 — 대기 대변화 진행', type:'good' },
+    { key:'co2_10', cond: state.co2 < 10, msg: 'CO₂ 10% 미만 — 화성 대기 완전 변환!', type:'good' },
+    { key:'water',  cond: state.liquidWater, msg: '액체 수분 조건 충족 — 생명 가능 환경 형성!', type:'good' },
+  ];
+  ms.forEach(m => {
+    if (m.cond && !milestones.has(m.key)) {
+      milestones.add(m.key);
+      addEvent(state.year, m.msg, m.type);
+      const pill = document.getElementById('milestone-pill');
+      pill.textContent = m.msg;
+      pill.style.display = 'inline-block';
+      setTimeout(()=>pill.style.display='none', 4000);
+    }
+  });
+}
+
+function updateDisplay() {
+  document.getElementById('year-disp').textContent = 'Year ' + state.year;
+  document.getElementById('v-co2').textContent = state.co2.toFixed(1);
+  document.getElementById('v-o2').textContent  = state.o2.toFixed(1);
+  document.getElementById('v-ch4').textContent = state.ch4.toFixed(1);
+  document.getElementById('v-temp').textContent = Math.round(state.temp);
+  document.getElementById('v-press').textContent = state.pressure.toFixed(1);
+
+  document.getElementById('b-co2').style.width   = Math.min(100, state.co2) + '%';
+  document.getElementById('b-o2').style.width    = Math.min(100, state.o2 * 5) + '%';
+  document.getElementById('b-ch4').style.width   = Math.min(100, state.ch4 * 5) + '%';
+  const tpct = Math.min(100, Math.max(0, (state.temp + 220) / 270 * 100));
+  document.getElementById('b-temp').style.width  = tpct + '%';
+  document.getElementById('b-press').style.width = Math.min(100, state.pressure / 150 * 100) + '%';
+
+  // Status pill
+  const pill = document.getElementById('status-pill');
+  const anyBio = ORGANISMS.some(o => bio[o.id]);
+  if (state.o2 > 15 && state.temp > 0) {
+    pill.textContent='거주 가능 달성'; pill.style.background='rgba(52,211,153,0.15)'; pill.style.borderColor='rgba(52,211,153,0.4)'; pill.style.color='#6ee7b7';
+  } else if (state.o2 > 5 || state.temp > -20) {
+    pill.textContent='테라포밍 진행 중'; pill.style.background='rgba(251,191,36,0.12)'; pill.style.borderColor='rgba(251,191,36,0.35)'; pill.style.color='#fcd34d';
+  } else if (anyBio) {
+    pill.textContent='생물 활동 중'; pill.style.background='rgba(99,102,241,0.12)'; pill.style.borderColor='rgba(99,102,241,0.3)'; pill.style.color='#a5b4fc';
+  } else {
+    pill.textContent='초기 상태'; pill.style.background='rgba(99,102,241,0.08)'; pill.style.borderColor='rgba(99,102,241,0.2)'; pill.style.color='#818cf8';
+  }
+
+  // Water pill
+  const wp = document.getElementById('water-pill');
+  if (state.liquidWater || state.subOcean) {
+    wp.textContent = state.subOcean ? '지하 바다 존재' : '액체 수분 가능';
+    wp.style.color = '#38bdf8'; wp.style.borderColor='rgba(56,189,248,0.4)';
+  } else if (state.temp > -30) {
+    wp.textContent = '부분 용해 가능'; wp.style.color='#94a3b8';
+  } else {
+    wp.textContent = '액체 수분: 없음'; wp.style.color='#475569'; wp.style.borderColor='rgba(56,189,248,0.15)';
+  }
+
+  updateDonut();
+  updateRadar();
+}
+
+function pushHistory() {
+  if (history.labels.length > 80) {
+    ['labels','co2','o2','ch4','temp','press'].forEach(k=>history[k].shift());
+  }
+  history.labels.push(state.year);
+  history.co2.push(+state.co2.toFixed(1));
+  history.o2.push(+state.o2.toFixed(2));
+  history.ch4.push(+state.ch4.toFixed(2));
+  history.temp.push(+state.temp.toFixed(1));
+  history.press.push(+state.pressure.toFixed(2));
+  if (chart) {
+    chart.data.labels = history.labels;
+    chart.data.datasets[0].data = history.co2;
+    chart.data.datasets[1].data = history.o2;
+    chart.data.datasets[2].data = history.ch4;
+    chart.data.datasets[3].data = history.temp;
+    chart.data.datasets[4].data = history.press;
+    chart.update('none');
+  }
+}
+
+function addEvent(yr, msg, type) {
+  eventsLog.unshift({ yr, msg, type });
+  const list = document.getElementById('event-list');
+  const div = document.createElement('div');
+  div.className = 'event-row ' + (type||'');
+  div.innerHTML = `<span class="event-yr">Year ${yr}</span><span class="event-txt">${msg}</span>`;
+  list.insertBefore(div, list.firstChild);
+}
+function clearEventList() {
+  document.getElementById('event-list').innerHTML = '';
+}
+
+function toggleRun() {
+  running = !running;
+  const btn = document.getElementById('run-btn');
+  btn.textContent = running ? '⏸ 일시정지' : '▶ 계속';
+  if (running) { timer = setInterval(step, speedMs); }
+  else { clearInterval(timer); }
+}
+
+function updateSpeed(v) {
+  document.getElementById('speed-v').textContent = '×' + v;
+  speedMs = Math.max(80, 750 - v * 110);
+  if (running) { clearInterval(timer); timer = setInterval(step, speedMs); }
+}
+
+function resetSim() {
+  clearInterval(timer); running = false;
+  document.getElementById('run-btn').textContent = '▶ 시뮬레이션 시작';
+  milestones = new Set();
+  history = { labels:[], co2:[], o2:[], ch4:[], temp:[], press:[] };
+  eventsLog = [];
+  initState();
+  renderBioList();
+  pushHistory();
+  updateDisplay();
+  clearEventList();
+  const preset = PRESETS[currentPlanet];
+  addEvent(0, `${preset.name} 환경 초기화. ${preset.note}`, '');
+  if (chart) { chart.data.labels=[]; chart.data.datasets.forEach(d=>d.data=[]); chart.update(); }
+  updateDonut(); updateRadar();
+}
+
+function updateCustom() {
+  ['temp','press','co2','rad','h2','sul'].forEach(k => {
+    const el = document.getElementById('c-'+k);
+    const vo = document.getElementById('c-'+k+'-v');
+    if (!el || !vo) return;
+    if (k==='rad') { const labels=['매우 낮음','낮음','중간','높음','매우 높음']; vo.textContent=labels[el.value-1]; }
+    else if (k==='h2'||k==='sul') { const labels=['매우 낮음','낮음','중간','높음','풍부']; vo.textContent=labels[el.value-1]; }
+    else vo.textContent = el.value;
+  });
+  if (currentPlanet==='custom') {
+    const p = buildCustomPreset();
+    PRESETS.custom = { ...PRESETS.custom, ...p };
+    initState();
+    renderEnvGrid();
+    pushHistory();
+    updateDisplay();
+  }
+}
+
+// ── Charts ──
+function initCharts() {
+  const gc = (id) => document.getElementById(id).getContext('2d');
+  const gridC = 'rgba(255,255,255,0.05)';
+  const textC = 'rgba(148,163,184,0.8)';
+
+  chart = new Chart(gc('atmChart'), {
+    type: 'line',
+    data: { labels:[], datasets:[
+      { label:'CO₂%', data:[], borderColor:'#f87171', borderWidth:1.5, pointRadius:0, tension:0.4, yAxisID:'y1', fill:false },
+      { label:'O₂%',  data:[], borderColor:'#34d399', borderWidth:1.5, pointRadius:0, tension:0.4, yAxisID:'y1', fill:false },
+      { label:'CH₄%', data:[], borderColor:'#fbbf24', borderWidth:1.5, pointRadius:0, tension:0.4, yAxisID:'y1', fill:false },
+      { label:'Temp°C', data:[], borderColor:'#c084fc', borderWidth:1.5, pointRadius:0, tension:0.4, yAxisID:'y2', borderDash:[4,3] },
+      { label:'Press kPa', data:[], borderColor:'#38bdf8', borderWidth:1, pointRadius:0, tension:0.4, yAxisID:'y2', borderDash:[2,4] },
+    ]},
+    options: {
+      responsive:true, maintainAspectRatio:false, animation:false,
+      plugins: { legend:{ display:false }, tooltip:{ mode:'index', intersect:false, backgroundColor:'rgba(13,18,32,0.95)', borderColor:'rgba(255,255,255,0.08)', borderWidth:1, titleColor:'#e8eaf6', bodyColor:'#94a3b8', padding:10 } },
+      scales: {
+        x: { ticks:{ color:textC, font:{size:10}, maxTicksLimit:8 }, grid:{ color:gridC }, border:{ display:false } },
+        y1:{ position:'left', ticks:{ color:textC, font:{size:10} }, grid:{ color:gridC }, border:{ display:false } },
+        y2:{ position:'right', ticks:{ color:textC, font:{size:10} }, grid:{ display:false }, border:{ display:false } },
+      }
+    }
+  });
+
+  donut = new Chart(gc('donutChart'), {
+    type: 'doughnut',
+    data: { labels:['CO₂','O₂','CH₄','N₂/기타'], datasets:[{ data:[95.3,0.1,0,4.6], backgroundColor:['#f87171','#34d399','#fbbf24','#60a5fa'], borderWidth:0, hoverOffset:4 }] },
+    options: {
+      responsive:true, maintainAspectRatio:false, animation:{ duration:400 },
+      plugins: { legend:{ position:'right', labels:{ color:textC, font:{size:10}, boxWidth:10, padding:8 } }, tooltip:{ callbacks:{ label:ctx=>`${ctx.label}: ${ctx.raw.toFixed(1)}%` } } },
+      cutout: '65%'
+    }
+  });
+
+  radar = new Chart(gc('radarChart'), {
+    type: 'radar',
+    data: { labels:['액체물','온도','O₂','에너지원','압력','방사선 안전'], datasets:[{
+      label:'생명 가능성',
+      data: calcRadarData(),
+      borderColor:'#6366f1', backgroundColor:'rgba(99,102,241,0.15)',
+      borderWidth:1.5, pointRadius:3, pointBackgroundColor:'#6366f1'
+    }]},
+    options: {
+      responsive:true, maintainAspectRatio:false, animation:{ duration:400 },
+      scales: { r:{ min:0, max:100, ticks:{ display:false, stepSize:25 }, grid:{ color:gridC }, pointLabels:{ color:textC, font:{size:9} }, angleLines:{ color:gridC } } },
+      plugins: { legend:{ display:false }, tooltip:{ backgroundColor:'rgba(13,18,32,0.9)', titleColor:'#e8eaf6', bodyColor:'#94a3b8' } }
+    }
+  });
+}
+
+function calcRadarData() {
+  const waterScore = state.liquidWater||state.subOcean ? 90 : Math.max(0, Math.min(60, (state.temp+30)*1.5));
+  const tempScore  = Math.max(0, Math.min(100, (state.temp+80)/120*100));
+  const o2Score    = Math.min(100, state.o2/21*100);
+  const energyScore= Math.min(100, (state.ch4*5 + state.h2avail*10 + (state.hydrothermal?40:0)));
+  const pressScore = Math.min(100, state.pressure > 100 ? 100 : state.pressure/101.3*80);
+  const radScore   = Math.max(0, 100 - state.radiation * 18);
+  return [waterScore, tempScore, o2Score, energyScore, pressScore, radScore].map(v=>Math.round(v));
+}
+
+function updateDonut() {
+  if (!donut) return;
+  const other = Math.max(0, 100 - state.co2 - state.o2 - state.ch4);
+  donut.data.datasets[0].data = [
+    +state.co2.toFixed(1), +state.o2.toFixed(1),
+    +state.ch4.toFixed(1), +other.toFixed(1)
+  ];
+  donut.update('none');
+}
+
+function updateRadar() {
+  if (!radar) return;
+  radar.data.datasets[0].data = calcRadarData();
+  radar.update('none');
+}
+
+// ── Init ──
+window.addEventListener('load', () => {
+  initState();
+  renderEnvGrid();
+  renderBioList();
+  initCharts();
+  pushHistory();
+  updateDisplay();
+  clearEventList();
+  addEvent(0, '화성 환경 로드. ' + PRESETS.mars.note, '');
+});
+</script>
+</body>
+</html>
