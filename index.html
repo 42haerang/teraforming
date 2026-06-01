@@ -3,50 +3,73 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>극한생물과 외계 천체 비교</title>
+    <title>외계 천체 테라포밍 시뮬레이터</title>
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <main class="page">
-      <header class="header">
-        <div>
-          <h1>극한생물 생존 조건으로 보는 외계 생명 가능성</h1>
-          <p>화성, 유로파, 엔셀라두스의 환경을 같은 기준으로 비교하고, 어떤 극한생물 전략이 맞는지 한 화면에서 확인합니다.</p>
+    <main class="app">
+      <header class="topbar">
+        <div class="brand">
+          <strong>극한생물 테라포밍 실험</strong>
+          <span id="clock">0 sol</span>
         </div>
-        <div class="summary">
-          <span>발표 결론</span>
-          <strong id="headline">엔셀라두스: 생명 흔적 직접 탐지에 가장 유리</strong>
-        </div>
+        <label>
+          천체 선택
+          <select id="worldSelect"></select>
+        </label>
+        <label>
+          생물
+          <select id="organismSelect"></select>
+        </label>
+        <button id="resetBtn" type="button">재시작</button>
       </header>
 
-      <section class="toolbar">
-        <button class="mode active" data-mode="all" type="button">전체 비교</button>
-        <button class="mode" data-mode="mars" type="button">화성 집중</button>
-        <button class="mode" data-mode="europa" type="button">유로파 집중</button>
-        <button class="mode" data-mode="enceladus" type="button">엔셀라두스 집중</button>
+      <section class="stage" id="stage" aria-label="천체 환경 시뮬레이션">
+        <canvas id="field"></canvas>
+        <div class="world-name">
+          <h1 id="worldName"></h1>
+          <p id="worldLine"></p>
+        </div>
+        <div class="legend">
+          <span><i class="temp"></i>온도</span>
+          <span><i class="salt"></i>염도</span>
+          <span><i class="rad"></i>방사선</span>
+          <span><i class="life"></i>생물</span>
+        </div>
       </section>
 
-      <section class="comparison" id="comparison"></section>
+      <aside class="hud">
+        <section class="panel atmosphere">
+          <div class="panel-title">
+            <h2>대기 조성</h2>
+            <strong id="habitability">0%</strong>
+          </div>
+          <div id="gasBars" class="gas-bars"></div>
+        </section>
+        <section class="panel stats">
+          <div>
+            <span>개체 수</span>
+            <strong id="population">0</strong>
+          </div>
+          <div>
+            <span>평균 적합도</span>
+            <strong id="fitness">0%</strong>
+          </div>
+          <div>
+            <span>테라포밍</span>
+            <strong id="terraform">0%</strong>
+          </div>
+          <div>
+            <span>주요 대사</span>
+            <strong id="metabolism">-</strong>
+          </div>
+        </section>
+      </aside>
 
-      <section class="bottom">
-        <article class="panel">
-          <h2>극한생물 전략 매칭</h2>
-          <div id="organismMap" class="organism-map"></div>
-        </article>
-        <article class="panel">
-          <h2>테라포밍 해석</h2>
-          <p id="terraformText"></p>
-        </article>
-        <article class="panel sources">
-          <h2>자료 기준</h2>
-          <a href="https://science.nasa.gov/mars/" target="_blank" rel="noreferrer">NASA Mars</a>
-          <a href="https://science.nasa.gov/mission/europa-clipper/mission-science/" target="_blank" rel="noreferrer">NASA Europa Clipper Mission Science</a>
-          <a href="https://science.nasa.gov/mission/cassini/science/enceladus/" target="_blank" rel="noreferrer">NASA Cassini Enceladus</a>
-          <p>표면 온도, 대기, 물 존재 가능성은 NASA 자료와 PPT 내용을 기준으로 했고, 내부 바다 세부 수치는 발표용 개념 모델로 단순화했습니다.</p>
-        </article>
-      </section>
+      <footer class="source">
+        NASA Mars · NASA Europa Clipper · NASA Cassini Enceladus 기반, 내부 수치는 발표용 단순 모델
+      </footer>
     </main>
-
     <script src="app.js"></script>
   </body>
 </html>
