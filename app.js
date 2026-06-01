@@ -86,8 +86,12 @@ const organisms = {
 const gasColors = { CO2: "#f06a5c", O2: "#70d77b", N2: "#67d7e6", Ar: "#b9a5ff", CH4: "#f0b44d", H2O: "#82d9ff" };
 const canvas = document.querySelector("#field");
 const ctx = canvas.getContext("2d");
+const gasChart = document.querySelector("#gasChart");
+const chartCtx = gasChart.getContext("2d");
 const worldSelect = document.querySelector("#worldSelect");
 const organismSelect = document.querySelector("#organismSelect");
+const speedRange = document.querySelector("#speedRange");
+const speedLabel = document.querySelector("#speedLabel");
 const resetBtn = document.querySelector("#resetBtn");
 
 let worldKey = "mars";
@@ -97,6 +101,9 @@ let agents = [];
 let terraform = 0;
 let elapsed = 0;
 let lastTime = performance.now();
+let timeScale = Number(speedRange.value);
+let gasHistory = [];
+let historyTimer = 0;
 
 for (const [key, world] of Object.entries(worlds)) {
   worldSelect.add(new Option(world.name, key));
@@ -119,6 +126,11 @@ organismSelect.addEventListener("change", () => {
   reset();
 });
 
+speedRange.addEventListener("input", () => {
+  timeScale = Number(speedRange.value);
+  speedLabel.textContent = timeScale === 0 ? "정지" : `${timeScale}x`;
+});
+
 resetBtn.addEventListener("click", reset);
 window.addEventListener("resize", resize);
 
@@ -128,6 +140,8 @@ function reset() {
   agents = Array.from({ length: 42 }, () => spawnAgent());
   terraform = 0;
   elapsed = 0;
+  historyTimer = 0;
+  gasHistory = [snapshotAtmosphere()];
   lastTime = performance.now();
   document.querySelector("#worldName").textContent = world.name;
   document.querySelector("#worldLine").textContent = world.line;
@@ -138,9 +152,12 @@ function resize() {
   const ratio = window.devicePixelRatio || 1;
   canvas.width = Math.floor(window.innerWidth * ratio);
   canvas.height = Math.floor(window.innerHeight * ratio);
+  gasChart.width = Math.floor(gasChart.clientWidth * ratio);
+  gasChart.height = Math.floor(gasChart.clientHeight * ratio);
   canvas.style.width = `${window.innerWidth}px`;
   canvas.style.height = `${window.innerHeight}px`;
   ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+  chartCtx.setTransform(ratio, 0, 0, ratio, 0, 0);
 }
 
 function spawnAgent() {
@@ -246,6 +263,13 @@ function update(dt) {
   } else {
     terraform = clamp(terraform - dt * 0.12, 0, 100);
   }
+
+  historyTimer += dt;
+  if (historyTimer > 0.45) {
+    gasHistory.push(snapshotAtmosphere());
+    gasHistory = gasHistory.slice(-90);
+    historyTimer = 0;
+  }
 }
 
 function normalizeAtmosphere() {
@@ -277,6 +301,7 @@ function draw() {
   drawFields(width, height);
   drawAgents(width, height, organism);
   drawAtmosphereTint(width, height);
+  drawOrbitLines(width, height);
 }
 
 function drawLayers(width, height, world) {
@@ -342,6 +367,17 @@ function drawAtmosphereTint(width, height) {
   ctx.fillRect(0, 0, width, height);
 }
 
+function drawOrbitLines(width, height) {
+  ctx.strokeStyle = "rgba(255,255,255,.08)";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.ellipse(width * 0.5, height * 0.58, width * 0.56, height * 0.22, -0.18, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.ellipse(width * 0.52, height * 0.62, width * 0.44, height * 0.17, 0.28, 0, Math.PI * 2);
+  ctx.stroke();
+}
+
 function drawVent(width, height) {
   const x = width * 0.68;
   const y = height * 0.78;
@@ -388,12 +424,61 @@ function updateHud() {
       <span>${value.toFixed(value >= 10 ? 0 : 1)}%</span>
     </div>
   `).join("");
+  drawGasChart();
+}
+
+function snapshotAtmosphere() {
+  return {
+    elapsed,
+    CO2: atmosphere.CO2 || 0,
+    O2: atmosphere.O2 || 0,
+    CH4: atmosphere.CH4 || 0,
+    N2: atmosphere.N2 || 0,
+    H2O: atmosphere.H2O || 0
+  };
+}
+
+function drawGasChart() {
+  const width = gasChart.clientWidth;
+  const height = gasChart.clientHeight;
+  chartCtx.clearRect(0, 0, width, height);
+  chartCtx.fillStyle = "rgba(255,255,255,.62)";
+  chartCtx.font = "11px Segoe UI, Malgun Gothic, sans-serif";
+  chartCtx.fillText("시간에 따른 대기 변화", 10, 18);
+  chartCtx.strokeStyle = "rgba(255,255,255,.12)";
+  chartCtx.lineWidth = 1;
+  for (let i = 1; i < 4; i += 1) {
+    const y = 28 + (height - 42) * i / 4;
+    chartCtx.beginPath();
+    chartCtx.moveTo(10, y);
+    chartCtx.lineTo(width - 10, y);
+    chartCtx.stroke();
+  }
+
+  const gases = ["CO2", "O2", "CH4", "N2", "H2O"].filter((gas) => gasHistory.some((point) => point[gas] > 0.05));
+  gases.forEach((gas) => {
+    chartCtx.strokeStyle = gasColors[gas] || "#fff";
+    chartCtx.lineWidth = gas === "CO2" ? 2.5 : 2;
+    chartCtx.beginPath();
+    gasHistory.forEach((point, index) => {
+      const x = 10 + (width - 20) * (gasHistory.length <= 1 ? 0 : index / (gasHistory.length - 1));
+      const y = height - 12 - (height - 42) * clamp(point[gas] / 100, 0, 1);
+      if (index === 0) chartCtx.moveTo(x, y);
+      else chartCtx.lineTo(x, y);
+    });
+    chartCtx.stroke();
+  });
 }
 
 function loop(now) {
-  const dt = Math.min((now - lastTime) / 1000, 0.05);
+  const realDt = Math.min((now - lastTime) / 1000, 0.05);
   lastTime = now;
-  update(dt);
+  const scaledDt = realDt * timeScale;
+  if (scaledDt > 0) {
+    const steps = Math.max(1, Math.ceil(scaledDt / 0.05));
+    const step = scaledDt / steps;
+    for (let i = 0; i < steps; i += 1) update(step);
+  }
   draw();
   updateHud();
   requestAnimationFrame(loop);
