@@ -3,75 +3,48 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>외계 환경 미생물 시뮬레이터</title>
+    <title>극한생물과 외계 천체 비교</title>
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <main class="layout">
-      <section class="main-panel">
-        <header class="topbar">
-          <div>
-            <h1>외계 환경 미생물 시뮬레이터</h1>
-            <p>천체별 환경장을 만들고, 미생물이 온도·방사선·염도·화학에너지 조건에 맞는 위치로 이동하는지 관찰합니다.</p>
-          </div>
-          <div class="time-box">
-            <span>경과 시간</span>
-            <strong id="yearValue">0</strong>
-            <small>년</small>
-          </div>
-        </header>
+    <main class="page">
+      <header class="header">
+        <div>
+          <h1>극한생물 생존 조건으로 보는 외계 생명 가능성</h1>
+          <p>화성, 유로파, 엔셀라두스의 환경을 같은 기준으로 비교하고, 어떤 극한생물 전략이 맞는지 한 화면에서 확인합니다.</p>
+        </div>
+        <div class="summary">
+          <span>발표 결론</span>
+          <strong id="headline">엔셀라두스: 생명 흔적 직접 탐지에 가장 유리</strong>
+        </div>
+      </header>
 
-        <canvas id="field" width="1040" height="650" aria-label="천체 환경장 시뮬레이션"></canvas>
-
-        <section class="meters">
-          <div><span>개체군</span><strong id="populationValue">0</strong><div class="meter"><div id="populationBar"></div></div></div>
-          <div><span>활성 대사</span><strong id="activeValue">0</strong><div class="meter"><div id="activeBar"></div></div></div>
-          <div><span>대사산물</span><strong id="productValue">0</strong><div class="meter"><div id="productBar"></div></div></div>
-          <div><span>테라포밍 지표</span><strong id="terraformValue">0</strong><div class="meter"><div id="terraformBar"></div></div></div>
-        </section>
+      <section class="toolbar">
+        <button class="mode active" data-mode="all" type="button">전체 비교</button>
+        <button class="mode" data-mode="mars" type="button">화성 집중</button>
+        <button class="mode" data-mode="europa" type="button">유로파 집중</button>
+        <button class="mode" data-mode="enceladus" type="button">엔셀라두스 집중</button>
       </section>
 
-      <aside class="side-panel">
-        <section>
-          <h2>실험</h2>
-          <div class="actions">
-            <button id="playButton" type="button">실행</button>
-            <button id="stepButton" type="button">100년 진행</button>
-            <button id="resetButton" type="button">초기화</button>
-          </div>
-        </section>
+      <section class="comparison" id="comparison"></section>
 
-        <section>
-          <h2>천체 프리셋</h2>
-          <div class="choices" id="worldChoices"></div>
-        </section>
-
-        <section>
-          <h2>환경 보정</h2>
-          <div class="sliders" id="sliders"></div>
-        </section>
-
-        <section>
-          <h2>미생물</h2>
-          <div class="choices" id="microbeChoices"></div>
-        </section>
-
-        <section class="readout">
-          <h2>미세환경 적합도</h2>
-          <div id="zoneReadout"></div>
-        </section>
-
-        <section class="readout">
-          <h2>판정</h2>
-          <p id="verdict"></p>
-        </section>
-
-        <section class="sources">
-          <h2>출처와 기준</h2>
-          <p id="modelNote"></p>
-          <div id="sourceLinks"></div>
-        </section>
-      </aside>
+      <section class="bottom">
+        <article class="panel">
+          <h2>극한생물 전략 매칭</h2>
+          <div id="organismMap" class="organism-map"></div>
+        </article>
+        <article class="panel">
+          <h2>테라포밍 해석</h2>
+          <p id="terraformText"></p>
+        </article>
+        <article class="panel sources">
+          <h2>자료 기준</h2>
+          <a href="https://science.nasa.gov/mars/" target="_blank" rel="noreferrer">NASA Mars</a>
+          <a href="https://science.nasa.gov/mission/europa-clipper/mission-science/" target="_blank" rel="noreferrer">NASA Europa Clipper Mission Science</a>
+          <a href="https://science.nasa.gov/mission/cassini/science/enceladus/" target="_blank" rel="noreferrer">NASA Cassini Enceladus</a>
+          <p>표면 온도, 대기, 물 존재 가능성은 NASA 자료와 PPT 내용을 기준으로 했고, 내부 바다 세부 수치는 발표용 개념 모델로 단순화했습니다.</p>
+        </article>
+      </section>
     </main>
 
     <script src="app.js"></script>
