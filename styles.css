@@ -1,6 +1,6 @@
 :root {
-  --bg: #070b10;
-  --panel: rgba(9, 14, 20, .78);
+  --bg: #020611;
+  --panel: rgba(5, 10, 22, .76);
   --panel-strong: rgba(247, 250, 246, .92);
   --line: rgba(255, 255, 255, .16);
   --text: #f8fbf7;
@@ -20,7 +20,10 @@ body {
   min-height: 100vh;
   overflow: hidden;
   color: var(--text);
-  background: var(--bg);
+  background:
+    radial-gradient(circle at 18% 14%, rgba(103, 215, 230, .16), transparent 24%),
+    radial-gradient(circle at 80% 4%, rgba(112, 215, 123, .1), transparent 19%),
+    linear-gradient(180deg, #020611 0%, #081222 48%, #020611 100%);
 }
 
 button, select {
@@ -33,11 +36,25 @@ button, select {
   padding: 14px;
 }
 
+.app::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    radial-gradient(circle, rgba(255,255,255,.72) 0 1px, transparent 1.5px),
+    radial-gradient(circle, rgba(103,215,230,.55) 0 1px, transparent 1.5px);
+  background-size: 120px 120px, 190px 190px;
+  background-position: 12px 18px, 80px 64px;
+  opacity: .24;
+  z-index: 1;
+}
+
 .topbar {
   position: relative;
   z-index: 5;
   display: grid;
-  grid-template-columns: 1fr 210px 210px 92px;
+  grid-template-columns: 1fr 210px 210px 230px 92px;
   gap: 10px;
   align-items: center;
 }
@@ -46,8 +63,9 @@ button, select {
   min-height: 48px;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: var(--panel);
+  background: linear-gradient(180deg, rgba(12, 19, 38, .88), rgba(3, 8, 19, .78));
   backdrop-filter: blur(18px);
+  box-shadow: inset 0 0 0 1px rgba(103, 215, 230, .05), 0 12px 34px rgba(0, 0, 0, .24);
 }
 
 .brand {
@@ -76,6 +94,20 @@ button, select {
   font-size: 13px;
 }
 
+.speed-control {
+  grid-template-columns: auto 1fr 42px !important;
+}
+
+.speed-control strong {
+  color: var(--cyan);
+  text-align: right;
+}
+
+input[type="range"] {
+  width: 100%;
+  accent-color: var(--cyan);
+}
+
 select {
   min-width: 0;
   border: 0;
@@ -99,6 +131,7 @@ select option {
   position: absolute;
   inset: 0;
   overflow: hidden;
+  z-index: 2;
 }
 
 canvas {
@@ -183,9 +216,9 @@ canvas {
 .panel {
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: var(--panel);
+  background: linear-gradient(180deg, rgba(9, 17, 34, .86), rgba(3, 8, 19, .78));
   backdrop-filter: blur(18px);
-  box-shadow: 0 24px 70px rgba(0, 0, 0, .28);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, .34), 0 0 38px rgba(103, 215, 230, .06);
 }
 
 .panel-title {
@@ -207,8 +240,21 @@ canvas {
 
 .gas-bars {
   display: grid;
-  gap: 10px;
-  padding: 12px 14px 14px;
+  gap: 8px;
+  padding: 10px 14px 14px;
+}
+
+#gasChart {
+  width: calc(100% - 28px);
+  height: 150px;
+  margin: 10px 14px 0;
+  border: 1px solid rgba(255, 255, 255, .12);
+  border-radius: 8px;
+  background:
+    linear-gradient(rgba(255,255,255,.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,.06) 1px, transparent 1px),
+    rgba(0, 0, 0, .18);
+  background-size: 100% 25%, 25% 100%, auto;
 }
 
 .gas-row {
@@ -297,6 +343,10 @@ canvas {
     grid-column: 1 / -1;
   }
 
+  .speed-control {
+    grid-column: 1 / -1;
+  }
+
   .hud {
     left: 14px;
     right: 14px;
@@ -306,11 +356,11 @@ canvas {
   }
 
   .world-name {
-    top: 214px;
+    top: 248px;
   }
 
   .world-name h1 {
-    font-size: 44px;
+    font-size: 38px;
     line-height: .9;
   }
 

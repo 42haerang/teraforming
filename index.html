@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>외계 천체 테라포밍 시뮬레이터</title>
-    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="styles.css?v=space-graph-2" />
   </head>
   <body>
     <main class="app">
@@ -13,13 +13,18 @@
           <strong>극한생물 테라포밍 실험</strong>
           <span id="clock">0 sol</span>
         </div>
-        <label>
-          천체 선택
+        <label class="select-control">
+          천체
           <select id="worldSelect"></select>
         </label>
-        <label>
+        <label class="select-control">
           생물
           <select id="organismSelect"></select>
+        </label>
+        <label class="speed-control">
+          시간
+          <input id="speedRange" type="range" min="0" max="80" value="18" />
+          <strong id="speedLabel">18x</strong>
         </label>
         <button id="resetBtn" type="button">재시작</button>
       </header>
@@ -44,6 +49,7 @@
             <h2>대기 조성</h2>
             <strong id="habitability">0%</strong>
           </div>
+          <canvas id="gasChart" aria-label="대기 조성 변화 그래프"></canvas>
           <div id="gasBars" class="gas-bars"></div>
         </section>
         <section class="panel stats">
@@ -70,6 +76,6 @@
         NASA Mars · NASA Europa Clipper · NASA Cassini Enceladus 기반, 내부 수치는 발표용 단순 모델
       </footer>
     </main>
-    <script src="app.js"></script>
+    <script src="app.js?v=space-graph-2"></script>
   </body>
 </html>
