@@ -1,174 +1,412 @@
 const worlds = {
   mars: {
     name: "화성",
-    rank: "과거 생명 흔적 / 지하 탐사",
-    summary: "춥고 건조하며 방사선이 강하다. 표면 생존보다는 지하 얼음, 염수, 과거 생명 흔적 탐사에 적합하다.",
-    facts: {
-      temp: "-63°C 평균",
-      atmosphere: "CO2 95%, 지구의 0.6%",
-      water: "극지방·지하 얼음",
-      energy: "표면 방사선 강함"
-    },
-    scene: "mars",
-    microbes: [
-      { id: "deinococcus", name: "D. 라디오두란스", x: 31, y: 34, active: false },
-      { id: "tardigrade", name: "물곰", x: 48, y: 58, active: false },
-      { id: "psychro", name: "저온 미생물", x: 45, y: 74, active: true }
-    ],
-    scores: { 생존: 42, 대사: 18, 탐사: 76, 테라포밍: 20 },
-    conclusion: "현재 표면 생명 가능성은 낮지만, 지하 보호 환경과 과거 물 흔적 때문에 생명 흔적 탐사 가치가 크다."
+    line: "차갑고 건조하며 CO2가 압도적으로 많은 대기. 지하 얼음과 방사선 회피가 생존의 핵심.",
+    sky: ["#2b1410", "#8b3e2f", "#d48b61"],
+    ocean: false,
+    atmosphere: { CO2: 95, N2: 2.7, Ar: 1.6, O2: 0.13, CH4: 0.01 },
+    env: { tempTop: -82, tempBottom: -24, saltTop: 12, saltBottom: 45, radTop: 92, radBottom: 34, pressureTop: 6, pressureBottom: 28, energyTop: 22, energyBottom: 38 }
   },
   europa: {
     name: "유로파",
-    rank: "얼음 아래 바다 생명 가능성",
-    summary: "표면은 매우 차갑지만 얼음층 아래 액체 바다가 있을 가능성이 크다. 해저 열수구가 있으면 화학합성 생태계와 연결된다.",
-    facts: {
-      temp: "-160°C 표면",
-      atmosphere: "매우 희박, 산소 미량",
-      water: "지구 해양의 약 2배 가능",
-      energy: "조석 가열, 열수구 가능성"
-    },
-    scene: "ocean",
-    microbes: [
-      { id: "shew", name: "고압 미생물", x: 45, y: 54, active: true },
-      { id: "vent", name: "화학합성균", x: 67, y: 76, active: true },
-      { id: "methano", name: "메탄생성균", x: 61, y: 64, active: true }
-    ],
-    scores: { 생존: 70, 대사: 63, 탐사: 66, 테라포밍: 55 },
-    conclusion: "태양빛 없이도 물과 화학에너지가 만난다면 생명 활동이 가능할 수 있어 지하 바다 탐사 가치가 크다."
+    line: "얼음 지각 아래 바다와 조석 가열. 표면보다 내부 해양과 열수구 근처가 훨씬 유리하다.",
+    sky: ["#071018", "#164456", "#a7d8df"],
+    ocean: true,
+    atmosphere: { O2: 86, H2O: 8, CO2: 3, N2: 2, CH4: 1 },
+    env: { tempTop: -160, tempBottom: 8, saltTop: 2, saltBottom: 58, radTop: 88, radBottom: 14, pressureTop: 1, pressureBottom: 86, energyTop: 10, energyBottom: 78 }
   },
   enceladus: {
     name: "엔셀라두스",
-    rank: "생명 흔적 직접 탐지 유리",
-    summary: "내부 바다 물질이 남극 분출기둥으로 나온다. 유기물, 수소, 메탄이 검출되어 생명 흔적 탐지에 가장 유리하다.",
-    facts: {
-      temp: "-200°C 표면",
-      atmosphere: "수증기 기둥 분출",
-      water: "남극 간헐천, 내부 바다",
-      energy: "수소·메탄·유기물 검출"
-    },
-    scene: "ocean",
-    microbes: [
-      { id: "methano", name: "메탄생성균", x: 58, y: 60, active: true },
-      { id: "sulfate", name: "황산염환원균", x: 67, y: 75, active: true },
-      { id: "vent", name: "화학합성균", x: 70, y: 78, active: true }
-    ],
-    scores: { 생존: 78, 대사: 80, 탐사: 92, 테라포밍: 68 },
-    conclusion: "내부 바다 조건이 좋고 분출기둥으로 물질이 직접 나오기 때문에 생명 흔적 탐지가 가장 유리하다."
+    line: "내부 바다 물질이 남극 분출기둥으로 나온다. H2, CH4, 유기물이 생명 흔적 탐지에 중요하다.",
+    sky: ["#06111c", "#1c5266", "#d2f1f2"],
+    ocean: true,
+    atmosphere: { H2O: 91, CO2: 4, CH4: 2, N2: 2, O2: 1 },
+    env: { tempTop: -200, tempBottom: 16, saltTop: 1, saltBottom: 36, radTop: 58, radBottom: 8, pressureTop: 1, pressureBottom: 72, energyTop: 16, energyBottom: 90 }
   }
 };
 
-const organisms = [
-  ["고방사선", "D. 라디오두란스 / 물곰", "DNA 복구, 휴면 생존"],
-  ["고압·무산소", "세와넬라 / 거대관벌레 공생계", "심해 열수구와 유사"],
-  ["화학합성", "메탄생성균 / 황산염환원균", "수소·황 화합물로 에너지 획득"]
-];
+const organisms = {
+  deinococcus: {
+    name: "방사선 내성균",
+    metabolism: "DNA 복구 · CO2 완만 고정",
+    temp: [-35, 42],
+    salt: [0, 25],
+    rad: [0, 96],
+    pressure: [0, 55],
+    energy: [12, 85],
+    color: "#ff7367",
+    gasEffect: { CO2: -0.0009, O2: 0.0005, N2: 0.0001 }
+  },
+  psychro: {
+    name: "저온성 미생물",
+    metabolism: "저온 대사 · CO2 고정",
+    temp: [-90, 12],
+    salt: [0, 42],
+    rad: [0, 48],
+    pressure: [0, 70],
+    energy: [8, 70],
+    color: "#7ec8ff",
+    gasEffect: { CO2: -0.0012, O2: 0.0007, N2: 0.0001 }
+  },
+  halophile: {
+    name: "호염성 미생물",
+    metabolism: "염분 적응 · 탄소 고정",
+    temp: [-20, 48],
+    salt: [32, 95],
+    rad: [0, 66],
+    pressure: [0, 80],
+    energy: [10, 85],
+    color: "#ffc35a",
+    gasEffect: { CO2: -0.0010, O2: 0.0004, CH4: 0.00015 }
+  },
+  methanogen: {
+    name: "메탄생성균",
+    metabolism: "혐기성 대사 · CH4 생성",
+    temp: [-12, 92],
+    salt: [0, 65],
+    rad: [0, 38],
+    pressure: [25, 100],
+    energy: [44, 100],
+    color: "#7ee879",
+    gasEffect: { CO2: -0.0007, CH4: 0.0015, O2: -0.00025 }
+  },
+  vent: {
+    name: "열수구 화학합성균",
+    metabolism: "화학합성 · O2/유기물 증가",
+    temp: [0, 118],
+    salt: [18, 76],
+    rad: [0, 35],
+    pressure: [48, 100],
+    energy: [62, 100],
+    color: "#61f0c5",
+    gasEffect: { CO2: -0.0015, O2: 0.0010, CH4: 0.00025 }
+  }
+};
 
-let mode = "all";
+const gasColors = { CO2: "#f06a5c", O2: "#70d77b", N2: "#67d7e6", Ar: "#b9a5ff", CH4: "#f0b44d", H2O: "#82d9ff" };
+const canvas = document.querySelector("#field");
+const ctx = canvas.getContext("2d");
+const worldSelect = document.querySelector("#worldSelect");
+const organismSelect = document.querySelector("#organismSelect");
+const resetBtn = document.querySelector("#resetBtn");
 
-function render() {
-  renderCards();
-  renderOrganisms();
-  const focus = mode === "all" ? "enceladus" : mode;
-  document.querySelector("#headline").textContent = `${worlds[focus].name}: ${worlds[focus].rank}`;
-  document.querySelector("#terraformText").textContent =
-    mode === "all"
-      ? "생명체가 환경을 바꿀 가능성은 단순 생존보다 대사 활동에 달려 있다. 화성은 생존/흔적 보존 중심, 유로파와 엔셀라두스는 지하 바다의 화학합성 생태계 가능성이 핵심이다."
-      : worlds[focus].conclusion;
+let worldKey = "mars";
+let organismKey = "psychro";
+let atmosphere;
+let agents = [];
+let terraform = 0;
+let elapsed = 0;
+let lastTime = performance.now();
+
+for (const [key, world] of Object.entries(worlds)) {
+  worldSelect.add(new Option(world.name, key));
 }
 
-function renderCards() {
-  document.querySelector("#comparison").innerHTML = Object.entries(worlds).map(([key, world]) => `
-    <article class="world-card ${mode !== "all" && mode !== key ? "dimmed" : ""}">
-      <div class="world-head">
-        <h2>${world.name}<span class="rank">${world.rank}</span></h2>
-        <p>${world.summary}</p>
-      </div>
-      <div class="fact-grid">
-        ${Object.entries(world.facts).map(([label, value]) => `
-          <div class="fact"><span>${factLabel(label)}</span><strong>${value}</strong></div>
-        `).join("")}
-      </div>
-      ${renderScene(world)}
-      <div class="match">
-        <h3>생명 가능성 지표</h3>
-        <div class="bars">
-          ${Object.entries(world.scores).map(([label, value]) => `
-            <div class="bar-row">
-              <span>${label}</span>
-              <div class="bar-track"><div class="bar-fill" style="width:${value}%; background:${barColor(value)}"></div></div>
-              <strong>${value}</strong>
-            </div>
-          `).join("")}
-        </div>
-      </div>
-    </article>
-  `).join("");
+for (const [key, organism] of Object.entries(organisms)) {
+  organismSelect.add(new Option(organism.name, key));
 }
 
-function factLabel(key) {
-  return { temp: "온도", atmosphere: "대기", water: "물", energy: "에너지/특징" }[key];
-}
+worldSelect.value = worldKey;
+organismSelect.value = organismKey;
 
-function renderScene(world) {
-  const isMars = world.scene === "mars";
-  return `
-    <div class="scene">
-      ${isMars ? `
-        <div class="layer surface"><div>표면<small>저온·건조·고방사선</small></div></div>
-        <div class="layer subsurface"><div>지하<small>얼음/염수 가능성</small></div></div>
-      ` : `
-        <div class="layer ice"><div>얼음 지각<small>표면은 극저온</small></div></div>
-        <div class="layer ocean"><div>지하 바다<small>액체 물 + 고압</small></div></div>
-        <div class="layer rock"><div>암석 해저<small>열수구 가능성</small></div></div>
-        <div class="vent"></div>
-      `}
-      <div class="hazard">${renderRays(isMars ? 12 : 4)}</div>
-      ${world.microbes.map((m, i) => `
-        <div class="microbe ${m.active ? "active" : ""}" title="${m.name}" style="left:${m.x}%; top:${m.y}%; color:${microbeColor(m.id)}; background:${microbeColor(m.id)}"></div>
-      `).join("")}
-    </div>
-  `;
-}
-
-function renderRays(count) {
-  return Array.from({ length: count }, (_, i) => `<span class="ray" style="left:${8 + i * (84 / Math.max(1, count - 1))}%"></span>`).join("");
-}
-
-function microbeColor(id) {
-  return {
-    deinococcus: "#e46f62",
-    tardigrade: "#e9bd5d",
-    psychro: "#78aee8",
-    shew: "#59d6d6",
-    vent: "#83d768",
-    methano: "#83d768",
-    sulfate: "#b08ae8"
-  }[id] || "#59d6d6";
-}
-
-function barColor(value) {
-  if (value >= 70) return "var(--good)";
-  if (value >= 45) return "var(--mid)";
-  return "var(--bad)";
-}
-
-function renderOrganisms() {
-  document.querySelector("#organismMap").innerHTML = organisms.map(([type, examples, mechanism]) => `
-    <div class="organism">
-      <strong>${type}</strong>
-      <span>${examples}</span>
-      <span>${mechanism}</span>
-    </div>
-  `).join("");
-}
-
-document.querySelector(".toolbar").addEventListener("click", (event) => {
-  const button = event.target.closest("[data-mode]");
-  if (!button) return;
-  mode = button.dataset.mode;
-  document.querySelectorAll(".mode").forEach((item) => item.classList.toggle("active", item === button));
-  render();
+worldSelect.addEventListener("change", () => {
+  worldKey = worldSelect.value;
+  reset();
 });
 
-render();
+organismSelect.addEventListener("change", () => {
+  organismKey = organismSelect.value;
+  reset();
+});
+
+resetBtn.addEventListener("click", reset);
+window.addEventListener("resize", resize);
+
+function reset() {
+  const world = worlds[worldKey];
+  atmosphere = { ...world.atmosphere };
+  agents = Array.from({ length: 42 }, () => spawnAgent());
+  terraform = 0;
+  elapsed = 0;
+  lastTime = performance.now();
+  document.querySelector("#worldName").textContent = world.name;
+  document.querySelector("#worldLine").textContent = world.line;
+  document.querySelector("#metabolism").textContent = organisms[organismKey].metabolism;
+}
+
+function resize() {
+  const ratio = window.devicePixelRatio || 1;
+  canvas.width = Math.floor(window.innerWidth * ratio);
+  canvas.height = Math.floor(window.innerHeight * ratio);
+  canvas.style.width = `${window.innerWidth}px`;
+  canvas.style.height = `${window.innerHeight}px`;
+  ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+}
+
+function spawnAgent() {
+  const world = worlds[worldKey];
+  const oceanBias = world.ocean ? 0.58 : 0.36;
+  return {
+    x: 0.18 + Math.random() * 0.64,
+    y: oceanBias + Math.random() * 0.32,
+    vx: 0,
+    vy: 0,
+    energy: 0.65 + Math.random() * 0.35,
+    age: 0,
+    fitness: 0
+  };
+}
+
+function envAt(x, y) {
+  const world = worlds[worldKey];
+  const e = world.env;
+  const depth = clamp(y, 0, 1);
+  const vent = world.ocean ? Math.exp(-((x - 0.68) ** 2 / 0.014 + (y - 0.78) ** 2 / 0.026)) : 0;
+  const iceShield = world.ocean && y > 0.22 ? 1 : 0;
+  const subShield = !world.ocean && y > 0.43 ? 0.7 : 0;
+  return {
+    temp: lerp(e.tempTop, e.tempBottom, depth) + vent * 48 + Math.sin(x * Math.PI * 2 + elapsed * 0.06) * 3,
+    salt: lerp(e.saltTop, e.saltBottom, depth) + vent * 8,
+    rad: Math.max(0, lerp(e.radTop, e.radBottom, depth) * (1 - iceShield * 0.35 - subShield)),
+    pressure: lerp(e.pressureTop, e.pressureBottom, depth),
+    energy: clamp(lerp(e.energyTop, e.energyBottom, depth) + vent * 38, 0, 100)
+  };
+}
+
+function scoreRange(value, range) {
+  const [min, max] = range;
+  const center = (min + max) / 2;
+  const radius = (max - min) / 2;
+  const distance = Math.abs(value - center);
+  return clamp(1 - distance / Math.max(radius, 1), 0, 1);
+}
+
+function fitnessAt(x, y) {
+  const organism = organisms[organismKey];
+  const env = envAt(x, y);
+  const scores = [
+    scoreRange(env.temp, organism.temp),
+    scoreRange(env.salt, organism.salt),
+    scoreRange(env.rad, organism.rad),
+    scoreRange(env.pressure, organism.pressure),
+    scoreRange(env.energy, organism.energy)
+  ];
+  return scores.reduce((sum, score) => sum + score, 0) / scores.length;
+}
+
+function update(dt) {
+  elapsed += dt;
+  const organism = organisms[organismKey];
+
+  for (const agent of agents) {
+    agent.age += dt;
+    const here = fitnessAt(agent.x, agent.y);
+    let best = { x: agent.x, y: agent.y, score: here };
+
+    for (let i = 0; i < 8; i += 1) {
+      const angle = Math.random() * Math.PI * 2;
+      const distance = 0.018 + Math.random() * 0.035;
+      const nx = clamp(agent.x + Math.cos(angle) * distance, 0.04, 0.96);
+      const ny = clamp(agent.y + Math.sin(angle) * distance, 0.16, 0.94);
+      const score = fitnessAt(nx, ny);
+      if (score > best.score) best = { x: nx, y: ny, score };
+    }
+
+    agent.vx = agent.vx * 0.82 + (best.x - agent.x) * 2.1 + (Math.random() - 0.5) * 0.006;
+    agent.vy = agent.vy * 0.82 + (best.y - agent.y) * 2.1 + (Math.random() - 0.5) * 0.006;
+    agent.x = clamp(agent.x + agent.vx * dt * 9, 0.04, 0.96);
+    agent.y = clamp(agent.y + agent.vy * dt * 9, 0.16, 0.94);
+    agent.fitness = fitnessAt(agent.x, agent.y);
+    agent.energy += (agent.fitness - 0.46) * dt * 0.42;
+    agent.energy -= dt * 0.018;
+  }
+
+  agents = agents.filter((agent) => agent.energy > 0 && agent.age < 900);
+
+  if (agents.length < 170) {
+    const babies = [];
+    for (const agent of agents) {
+      if (agent.fitness > 0.68 && agent.energy > 0.9 && Math.random() < dt * 0.65) {
+        agent.energy *= 0.58;
+        babies.push({ ...spawnAgent(), x: clamp(agent.x + (Math.random() - 0.5) * 0.04, 0.04, 0.96), y: clamp(agent.y + (Math.random() - 0.5) * 0.04, 0.16, 0.94), energy: 0.72 });
+      }
+    }
+    agents.push(...babies);
+  }
+
+  const avgFitness = averageFitness();
+  const livingForce = Math.min(1, agents.length / 90) * Math.max(0, avgFitness - 0.42);
+  for (const [gas, effect] of Object.entries(organism.gasEffect)) {
+    atmosphere[gas] = Math.max(0, (atmosphere[gas] || 0) + effect * livingForce * dt * 85);
+  }
+  normalizeAtmosphere();
+
+  if (avgFitness > 0.58 && agents.length > 18) {
+    terraform = clamp(terraform + livingForce * dt * 1.8, 0, 100);
+  } else {
+    terraform = clamp(terraform - dt * 0.12, 0, 100);
+  }
+}
+
+function normalizeAtmosphere() {
+  const total = Object.values(atmosphere).reduce((sum, value) => sum + value, 0) || 1;
+  for (const gas of Object.keys(atmosphere)) {
+    atmosphere[gas] = atmosphere[gas] / total * 100;
+  }
+}
+
+function averageFitness() {
+  if (!agents.length) return 0;
+  return agents.reduce((sum, agent) => sum + agent.fitness, 0) / agents.length;
+}
+
+function draw() {
+  const width = window.innerWidth;
+  const height = window.innerHeight;
+  const world = worlds[worldKey];
+  const organism = organisms[organismKey];
+
+  const sky = ctx.createLinearGradient(0, 0, 0, height);
+  sky.addColorStop(0, world.sky[0]);
+  sky.addColorStop(0.35, world.sky[1]);
+  sky.addColorStop(1, world.sky[2]);
+  ctx.fillStyle = sky;
+  ctx.fillRect(0, 0, width, height);
+
+  drawLayers(width, height, world);
+  drawFields(width, height);
+  drawAgents(width, height, organism);
+  drawAtmosphereTint(width, height);
+}
+
+function drawLayers(width, height, world) {
+  if (world.ocean) {
+    fillBand(0.25, 0.48, "#174f62");
+    fillBand(0.73, 0.27, "#201b17");
+    fillBand(0.14, 0.11, "rgba(231, 250, 255, .9)");
+    drawVent(width, height);
+  } else {
+    fillBand(0.43, 0.57, "#4a2c22");
+    fillBand(0.30, 0.13, "#a45d48");
+    drawCracks(width, height);
+  }
+
+  function fillBand(start, size, color) {
+    ctx.fillStyle = color;
+    ctx.fillRect(0, height * start, width, height * size);
+  }
+}
+
+function drawFields(width, height) {
+  const cell = 42;
+  for (let y = 0; y < height; y += cell) {
+    for (let x = 0; x < width; x += cell) {
+      const env = envAt(x / width, y / height);
+      ctx.fillStyle = `rgba(240, 106, 92, ${env.rad / 520})`;
+      ctx.fillRect(x, y, cell, cell);
+      ctx.fillStyle = `rgba(103, 215, 230, ${env.salt / 740})`;
+      ctx.fillRect(x, y, cell, cell);
+      ctx.fillStyle = `rgba(240, 180, 77, ${clamp((env.temp + 210) / 360, 0, 1) * 0.07})`;
+      ctx.fillRect(x, y, cell, cell);
+    }
+  }
+}
+
+function drawAgents(width, height, organism) {
+  for (const agent of agents) {
+    const x = agent.x * width;
+    const y = agent.y * height;
+    const radius = 3.5 + agent.fitness * 5.5;
+    ctx.beginPath();
+    ctx.fillStyle = organism.color;
+    ctx.shadowColor = organism.color;
+    ctx.shadowBlur = 16 + agent.fitness * 20;
+    ctx.arc(x, y, radius, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.strokeStyle = `rgba(255,255,255,${0.25 + agent.fitness * 0.55})`;
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+  }
+}
+
+function drawAtmosphereTint(width, height) {
+  const o2 = atmosphere.O2 || 0;
+  const ch4 = atmosphere.CH4 || 0;
+  const terraformAlpha = clamp(terraform / 100, 0, 1) * 0.18;
+  const gasGlow = ctx.createRadialGradient(width * 0.55, height * 0.62, 20, width * 0.55, height * 0.62, width * 0.62);
+  gasGlow.addColorStop(0, `rgba(112, 215, 123, ${terraformAlpha + o2 / 800})`);
+  gasGlow.addColorStop(0.55, `rgba(240, 180, 77, ${ch4 / 700})`);
+  gasGlow.addColorStop(1, "rgba(0,0,0,0)");
+  ctx.fillStyle = gasGlow;
+  ctx.fillRect(0, 0, width, height);
+}
+
+function drawVent(width, height) {
+  const x = width * 0.68;
+  const y = height * 0.78;
+  const plume = ctx.createRadialGradient(x, y - 70, 5, x, y - 70, 130);
+  plume.addColorStop(0, "rgba(255,255,255,.58)");
+  plume.addColorStop(1, "rgba(255,255,255,0)");
+  ctx.fillStyle = plume;
+  ctx.beginPath();
+  ctx.ellipse(x, y - 70, 92, 132, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = "#c95e42";
+  ctx.beginPath();
+  ctx.moveTo(x - 24, y + 48);
+  ctx.lineTo(x, y - 28);
+  ctx.lineTo(x + 26, y + 48);
+  ctx.closePath();
+  ctx.fill();
+}
+
+function drawCracks(width, height) {
+  ctx.strokeStyle = "rgba(255, 143, 109, .34)";
+  ctx.lineWidth = 2;
+  for (let i = 0; i < 18; i += 1) {
+    const x = width * (0.06 + i * 0.052);
+    ctx.beginPath();
+    ctx.moveTo(x, height * 0.3);
+    ctx.lineTo(x + Math.sin(i) * 24, height * 0.43);
+    ctx.stroke();
+  }
+}
+
+function updateHud() {
+  document.querySelector("#clock").textContent = `${Math.floor(elapsed)} sol`;
+  document.querySelector("#population").textContent = agents.length;
+  document.querySelector("#fitness").textContent = `${Math.round(averageFitness() * 100)}%`;
+  document.querySelector("#terraform").textContent = `${Math.round(terraform)}%`;
+  document.querySelector("#habitability").textContent = `${Math.round(terraform)}%`;
+
+  const sorted = Object.entries(atmosphere).sort((a, b) => b[1] - a[1]);
+  document.querySelector("#gasBars").innerHTML = sorted.map(([gas, value]) => `
+    <div class="gas-row">
+      <strong>${gas}</strong>
+      <div class="gas-track"><div class="gas-fill" style="width:${Math.max(1, value)}%; background:${gasColors[gas] || "#fff"}"></div></div>
+      <span>${value.toFixed(value >= 10 ? 0 : 1)}%</span>
+    </div>
+  `).join("");
+}
+
+function loop(now) {
+  const dt = Math.min((now - lastTime) / 1000, 0.05);
+  lastTime = now;
+  update(dt);
+  draw();
+  updateHud();
+  requestAnimationFrame(loop);
+}
+
+function lerp(a, b, t) {
+  return a + (b - a) * t;
+}
+
+function clamp(value, min, max) {
+  return Math.max(min, Math.min(max, value));
+}
+
+resize();
+reset();
+requestAnimationFrame(loop);
