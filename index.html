@@ -4,14 +4,14 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>외계 천체 테라포밍 시뮬레이터</title>
-    <link rel="stylesheet" href="styles.css?v=space-graph-2" />
+    <link rel="stylesheet" href="styles.css?v=feedback-model-3" />
   </head>
   <body>
     <main class="app">
       <header class="topbar">
         <div class="brand">
           <strong>극한생물 테라포밍 실험</strong>
-          <span id="clock">0 sol</span>
+          <span id="clock">0년</span>
         </div>
         <label class="select-control">
           천체
@@ -23,8 +23,8 @@
         </label>
         <label class="speed-control">
           시간
-          <input id="speedRange" type="range" min="0" max="80" value="18" />
-          <strong id="speedLabel">18x</strong>
+          <input id="speedRange" type="range" min="0" max="120" value="20" />
+          <strong id="speedLabel">20x</strong>
         </label>
         <button id="resetBtn" type="button">재시작</button>
       </header>
@@ -70,12 +70,30 @@
             <strong id="metabolism">-</strong>
           </div>
         </section>
+        <section class="panel env-readout">
+          <div>
+            <span>온실효과</span>
+            <strong id="greenhouse">+0°C</strong>
+          </div>
+          <div>
+            <span>차폐효과</span>
+            <strong id="shielding">0%</strong>
+          </div>
+          <div>
+            <span>현재 위치 평균</span>
+            <strong id="localEnv">-</strong>
+          </div>
+          <div>
+            <span>생존 조건</span>
+            <strong id="conditionRange">-</strong>
+          </div>
+        </section>
       </aside>
 
       <footer class="source">
         NASA Mars · NASA Europa Clipper · NASA Cassini Enceladus 기반, 내부 수치는 발표용 단순 모델
       </footer>
     </main>
-    <script src="app.js?v=space-graph-2"></script>
+    <script src="app.js?v=feedback-model-3"></script>
   </body>
 </html>
