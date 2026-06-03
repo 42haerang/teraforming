@@ -183,42 +183,6 @@ canvas {
   pointer-events: none;
 }
 
-.legend {
-  position: absolute;
-  left: 26px;
-  bottom: 22px;
-  z-index: 4;
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
-.legend span {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  height: 34px;
-  padding: 0 11px;
-  border: 1px solid var(--line);
-  border-radius: 99px;
-  background: rgba(0, 0, 0, .38);
-  color: var(--muted);
-  font-size: 13px;
-  font-weight: 800;
-}
-
-.legend i {
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  box-shadow: 0 0 14px currentColor;
-}
-
-.temp { background: var(--amber); }
-.salt { background: var(--cyan); }
-.rad { background: var(--red); }
-.life { background: var(--green); }
-
 .hud {
   position: absolute;
   z-index: 6;
@@ -414,12 +378,6 @@ canvas {
     left: 14px;
     top: 322px;
     width: calc(100vw - 28px);
-  }
-
-  .legend {
-    left: 14px;
-    top: 494px;
-    bottom: auto;
   }
 
 }
