@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>극한생물 대기 전환 시뮬레이터</title>
-    <link rel="stylesheet" href="styles.css?v=goal-population-6" />
+    <link rel="stylesheet" href="styles.css?v=keyboard-controls-9" />
   </head>
   <body>
     <main class="app">
@@ -26,16 +26,18 @@
           <input id="speedRange" type="range" min="0" max="120" value="8" />
           <strong id="speedLabel">8x</strong>
         </label>
-        <button id="pauseBtn" type="button">정지</button>
-        <button id="resetBtn" type="button">재시작</button>
       </header>
 
       <section class="stage" id="stage" aria-label="천체 환경 시뮬레이션">
         <canvas id="field"></canvas>
         <div class="world-name">
           <h1 id="worldName"></h1>
-          <p>목표: 극한생물이 생존·번식하면서 대기 조성비를 인간에게 필요한 방향으로 바꿀 수 있는지 관찰</p>
         </div>
+        <section class="panel criteria-panel stage-criteria">
+          <div class="criteria-title">기준값</div>
+          <pre id="criteriaText"></pre>
+          <div class="key-hint">Space 정지/재생 · R 재시작 · ←/→ 100년 이동</div>
+        </section>
         <div class="legend">
           <span><i class="temp"></i>온도</span>
           <span><i class="salt"></i>염도</span>
@@ -91,6 +93,6 @@
         </section>
       </aside>
     </main>
-    <script src="app.js?v=goal-population-6"></script>
+    <script src="app.js?v=keyboard-controls-9"></script>
   </body>
 </html>

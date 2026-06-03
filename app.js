@@ -107,8 +107,6 @@ const worldSelect = document.querySelector("#worldSelect");
 const organismSelect = document.querySelector("#organismSelect");
 const speedRange = document.querySelector("#speedRange");
 const speedLabel = document.querySelector("#speedLabel");
-const pauseBtn = document.querySelector("#pauseBtn");
-const resetBtn = document.querySelector("#resetBtn");
 
 let worldKey = "mars";
 let organismKey = "psychro";
@@ -123,6 +121,8 @@ let paused = false;
 let gasHistory = [];
 let historyTimer = 0;
 let climate = { greenhouse: 0, shielding: 0, pressureBoost: 0 };
+let timeline = [];
+let nextTimelineMark = 100;
 
 for (const [key, world] of Object.entries(worlds)) {
   worldSelect.add(new Option(world.name, key));
@@ -153,12 +153,25 @@ speedRange.addEventListener("input", () => {
     paused = false;
     storedTimeScale = timeScale;
   }
-  pauseBtn.classList.toggle("paused", paused);
-  pauseBtn.textContent = paused ? "재생" : "정지";
   speedLabel.textContent = timeScale === 0 ? "정지" : `${timeScale}x`;
 });
 
-pauseBtn.addEventListener("click", () => {
+window.addEventListener("keydown", (event) => {
+  if (event.code === "Space") {
+    event.preventDefault();
+    togglePause();
+  } else if (event.key.toLowerCase() === "r") {
+    reset();
+  } else if (event.key === "ArrowRight") {
+    event.preventDefault();
+    jumpYears(100);
+  } else if (event.key === "ArrowLeft") {
+    event.preventDefault();
+    jumpYears(-100);
+  }
+});
+
+function togglePause() {
   paused = !paused;
   if (paused) {
     storedTimeScale = timeScale || storedTimeScale || 1;
@@ -168,11 +181,8 @@ pauseBtn.addEventListener("click", () => {
   }
   speedRange.value = timeScale;
   speedLabel.textContent = timeScale === 0 ? "정지" : `${timeScale}x`;
-  pauseBtn.classList.toggle("paused", paused);
-  pauseBtn.textContent = paused ? "재생" : "정지";
-});
+}
 
-resetBtn.addEventListener("click", reset);
 window.addEventListener("resize", resize);
 
 function reset() {
@@ -183,9 +193,60 @@ function reset() {
   elapsed = 0;
   historyTimer = 0;
   gasHistory = [snapshotAtmosphere()];
+  timeline = [snapshotState()];
+  nextTimelineMark = 100;
   lastTime = performance.now();
   document.querySelector("#worldName").textContent = world.name;
   document.querySelector("#metabolism").textContent = organisms[organismKey].metabolism;
+  updateCriteriaText();
+}
+
+function snapshotState() {
+  return {
+    elapsed,
+    atmosphere: { ...atmosphere },
+    terraform,
+    agents: agents.map((agent) => ({ ...agent })),
+    gasHistory: gasHistory.map((point) => ({ ...point })),
+    nextTimelineMark
+  };
+}
+
+function restoreState(state) {
+  elapsed = state.elapsed;
+  atmosphere = { ...state.atmosphere };
+  terraform = state.terraform;
+  agents = state.agents.map((agent) => ({ ...agent }));
+  gasHistory = state.gasHistory.map((point) => ({ ...point }));
+  nextTimelineMark = Math.floor(elapsed / 100) * 100 + 100;
+  historyTimer = 0;
+  lastTime = performance.now();
+}
+
+function rememberTimeline() {
+  if (elapsed < nextTimelineMark) return;
+  timeline.push(snapshotState());
+  timeline = timeline.slice(-80);
+  nextTimelineMark += 100;
+}
+
+function jumpYears(years) {
+  if (years > 0) {
+    const wasPaused = paused;
+    for (let i = 0; i < years; i += 1) update(1);
+    if (wasPaused) {
+      paused = true;
+      timeScale = 0;
+      speedRange.value = 0;
+      speedLabel.textContent = "정지";
+    }
+  } else {
+    const target = Math.max(0, elapsed + years);
+    const candidates = timeline.filter((state) => state.elapsed <= target);
+    restoreState(candidates.at(-1) || timeline[0]);
+  }
+  updateHud();
+  draw();
 }
 
 function resize() {
@@ -345,6 +406,7 @@ function update(dt) {
     gasHistory = gasHistory.slice(-90);
     historyTimer = 0;
   }
+  rememberTimeline();
 }
 
 function humanAtmosphereScore() {
@@ -481,31 +543,6 @@ function drawFields(width, height) {
       ctx.fillRect(x, y, cell, cell);
     }
   }
-  drawEnvironmentContours(width, height);
-}
-
-function drawEnvironmentContours(width, height) {
-  const bands = [
-    { color: "rgba(240, 180, 77, .46)", y: 0.30 + climate.greenhouse / 180, label: "온도 상승" },
-    { color: "rgba(103, 215, 230, .42)", y: worlds[worldKey].ocean ? 0.58 : 0.50, label: "염도/수분" },
-    { color: "rgba(240, 106, 92, .45)", y: 0.18 + climate.shielding * 0.28, label: "방사선" }
-  ];
-  ctx.font = "700 13px Segoe UI, Malgun Gothic, sans-serif";
-  for (const band of bands) {
-    const y = clamp(band.y, 0.12, 0.86) * height;
-    ctx.strokeStyle = band.color;
-    ctx.lineWidth = 2;
-    ctx.setLineDash([9, 10]);
-    ctx.beginPath();
-    ctx.moveTo(0, y);
-    for (let x = 0; x <= width; x += 24) {
-      ctx.lineTo(x, y + Math.sin(x * 0.012 + elapsed * 0.04) * 9);
-    }
-    ctx.stroke();
-    ctx.setLineDash([]);
-    ctx.fillStyle = band.color.replace(/[\d.]+\)$/u, ".9)");
-    ctx.fillText(band.label, 28, y - 8);
-  }
 }
 
 function drawAgents(width, height, organism) {
@@ -595,6 +632,7 @@ function updateHud() {
   const organism = organisms[organismKey];
   document.querySelector("#conditionRange").textContent =
     `${organism.temp[0]}~${organism.temp[1]}°C · 방사선 ${organism.rad[0]}~${organism.rad[1]} · 압력 ${organism.pressure[0]}~${organism.pressure[1]}`;
+  updateCriteriaText();
 
   const sorted = Object.keys(atmosphere)
     .map((gas) => [gas, gasRatio(gas)])
@@ -607,6 +645,34 @@ function updateHud() {
     </div>
   `).join("");
   drawGasChart();
+}
+
+function updateCriteriaText() {
+  document.querySelector("#criteriaText").textContent = criteriaText(worlds[worldKey], organisms[organismKey]);
+}
+
+function criteriaText(world, organism) {
+  const atmosphereText = Object.entries(world.atmosphere)
+    .map(([gas, value]) => `${gas} ${value}%`)
+    .join(", ");
+  const gasNeedText = organism.gasNeed
+    ? Object.entries(organism.gasNeed).map(([gas, range]) => `${gas} ${range[0]}~${range[1]}%`).join(", ")
+    : "특정 기체 제한 없음";
+  return [
+    `[${world.name} 초기 환경]`,
+    `대기: ${atmosphereText}`,
+    `온도: ${world.env.tempTop}~${world.env.tempBottom}°C`,
+    `염도: ${world.env.saltTop}~${world.env.saltBottom}`,
+    `방사선: ${world.env.radTop}~${world.env.radBottom}`,
+    "",
+    `[${organism.name} 생존 조건]`,
+    `온도: ${organism.temp[0]}~${organism.temp[1]}°C`,
+    `염도: ${organism.salt[0]}~${organism.salt[1]}`,
+    `방사선: ${organism.rad[0]}~${organism.rad[1]}`,
+    `압력: ${organism.pressure[0]}~${organism.pressure[1]}`,
+    `필요 기체: ${gasNeedText}`,
+    `대사: ${organism.metabolism}`
+  ].join("\n");
 }
 
 function metabolismSummary(local) {
