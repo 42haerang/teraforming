@@ -32,6 +32,8 @@ const organisms = {
   deinococcus: {
     name: "방사선 내성균",
     metabolism: "DNA 복구 · CO2 완만 고정",
+    lifespan: 140,
+    gasNeed: { CO2: [0.1, 100] },
     temp: [-35, 42],
     salt: [0, 25],
     rad: [0, 96],
@@ -43,6 +45,8 @@ const organisms = {
   psychro: {
     name: "저온성 미생물",
     metabolism: "저온 대사 · CO2 고정",
+    lifespan: 110,
+    gasNeed: { CO2: [2, 100] },
     temp: [-90, 12],
     salt: [0, 42],
     rad: [0, 48],
@@ -54,6 +58,8 @@ const organisms = {
   halophile: {
     name: "호염성 미생물",
     metabolism: "염분 적응 · 탄소 고정",
+    lifespan: 95,
+    gasNeed: { CO2: [1, 100] },
     temp: [-20, 48],
     salt: [32, 95],
     rad: [0, 66],
@@ -65,6 +71,8 @@ const organisms = {
   methanogen: {
     name: "메탄생성균",
     metabolism: "혐기성 대사 · CH4 생성",
+    lifespan: 85,
+    gasNeed: { CO2: [0.4, 100], O2: [0, 8], H2O: [0.4, 100] },
     temp: [-12, 92],
     salt: [0, 65],
     rad: [0, 38],
@@ -76,6 +84,8 @@ const organisms = {
   vent: {
     name: "열수구 화학합성균",
     metabolism: "화학합성 · O2/유기물 증가",
+    lifespan: 75,
+    gasNeed: { CO2: [0.2, 100], H2O: [1, 100] },
     temp: [0, 118],
     salt: [18, 76],
     rad: [0, 35],
@@ -95,6 +105,7 @@ const worldSelect = document.querySelector("#worldSelect");
 const organismSelect = document.querySelector("#organismSelect");
 const speedRange = document.querySelector("#speedRange");
 const speedLabel = document.querySelector("#speedLabel");
+const pauseBtn = document.querySelector("#pauseBtn");
 const resetBtn = document.querySelector("#resetBtn");
 
 let worldKey = "mars";
@@ -105,6 +116,8 @@ let terraform = 0;
 let elapsed = 0;
 let lastTime = performance.now();
 let timeScale = Number(speedRange.value);
+let storedTimeScale = timeScale;
+let paused = false;
 let gasHistory = [];
 let historyTimer = 0;
 let climate = { greenhouse: 0, shielding: 0, pressureBoost: 0 };
@@ -134,7 +147,27 @@ organismSelect.addEventListener("change", () => {
 
 speedRange.addEventListener("input", () => {
   timeScale = Number(speedRange.value);
+  if (timeScale > 0) {
+    paused = false;
+    storedTimeScale = timeScale;
+  }
+  pauseBtn.classList.toggle("paused", paused);
+  pauseBtn.textContent = paused ? "재생" : "정지";
   speedLabel.textContent = timeScale === 0 ? "정지" : `${timeScale}x`;
+});
+
+pauseBtn.addEventListener("click", () => {
+  paused = !paused;
+  if (paused) {
+    storedTimeScale = timeScale || storedTimeScale || 1;
+    timeScale = 0;
+  } else {
+    timeScale = storedTimeScale || 1;
+  }
+  speedRange.value = timeScale;
+  speedLabel.textContent = timeScale === 0 ? "정지" : `${timeScale}x`;
+  pauseBtn.classList.toggle("paused", paused);
+  pauseBtn.textContent = paused ? "재생" : "정지";
 });
 
 resetBtn.addEventListener("click", reset);
@@ -168,6 +201,7 @@ function resize() {
 
 function spawnAgent() {
   const world = worlds[worldKey];
+  const organism = organisms[organismKey];
   const oceanBias = world.ocean ? 0.58 : 0.36;
   return {
     x: 0.18 + Math.random() * 0.64,
@@ -176,6 +210,7 @@ function spawnAgent() {
     vy: 0,
     energy: 0.65 + Math.random() * 0.35,
     age: 0,
+    lifespan: organism.lifespan * (0.72 + Math.random() * 0.56),
     fitness: 0
   };
 }
@@ -227,6 +262,19 @@ function scoreRange(value, range) {
   return clamp(1 - distance / Math.max(radius, 1), 0, 1);
 }
 
+function gasRangeScore(value, range) {
+  const [min, max] = range;
+  if (value < min) return clamp(value / Math.max(min, 0.01), 0, 1);
+  if (value > max) return clamp(1 - (value - max) / Math.max(100 - max, 1), 0, 1);
+  return 1;
+}
+
+function gasSuitability(organism = organisms[organismKey]) {
+  if (!organism.gasNeed) return 1;
+  const scores = Object.entries(organism.gasNeed).map(([gas, range]) => gasRangeScore(gasRatio(gas), range));
+  return scores.reduce((sum, score) => sum + score, 0) / scores.length;
+}
+
 function fitnessAt(x, y) {
   const organism = organisms[organismKey];
   const env = envAt(x, y);
@@ -237,7 +285,8 @@ function fitnessAt(x, y) {
     scoreRange(env.pressure, organism.pressure),
     scoreRange(env.energy, organism.energy)
   ];
-  return scores.reduce((sum, score) => sum + score, 0) / scores.length;
+  const localScore = scores.reduce((sum, score) => sum + score, 0) / scores.length;
+  return localScore * (0.15 + gasSuitability(organism) * 0.85);
 }
 
 function update(dt) {
@@ -263,16 +312,18 @@ function update(dt) {
     agent.x = clamp(agent.x + agent.vx * dt * 9, 0.04, 0.96);
     agent.y = clamp(agent.y + agent.vy * dt * 9, 0.16, 0.94);
     agent.fitness = fitnessAt(agent.x, agent.y);
-    agent.energy += (agent.fitness - 0.46) * dt * 0.42;
-    agent.energy -= dt * 0.018;
+    const gasScore = gasSuitability(organism);
+    const oldAgeStress = clamp((agent.age - agent.lifespan * 0.72) / (agent.lifespan * 0.28), 0, 1);
+    agent.energy += (agent.fitness - 0.48) * gasScore * dt * 0.32;
+    agent.energy -= dt * (0.012 + oldAgeStress * 0.038 + (1 - gasScore) * 0.055);
   }
 
-  agents = agents.filter((agent) => agent.energy > 0);
+  agents = agents.filter((agent) => agent.energy > 0 && agent.age < agent.lifespan);
 
   if (agents.length < 170) {
     const babies = [];
     for (const agent of agents) {
-      if (agent.fitness > 0.68 && agent.energy > 0.9 && Math.random() < dt * 0.65) {
+      if (agent.fitness > 0.68 && gasSuitability(organism) > 0.42 && agent.energy > 0.9 && Math.random() < dt * 0.42) {
         agent.energy *= 0.58;
         babies.push({ ...spawnAgent(), x: clamp(agent.x + (Math.random() - 0.5) * 0.04, 0.04, 0.96), y: clamp(agent.y + (Math.random() - 0.5) * 0.04, 0.16, 0.94), energy: 0.72 });
       }
@@ -312,7 +363,7 @@ function applyMetabolism(dt) {
 }
 
 function gasExchange(organism, env, fitness) {
-  const activity = Math.max(0, fitness - 0.34) * 0.018;
+  const activity = Math.max(0, fitness - 0.34) * gasSuitability(organism) * 0.018;
   const energyBonus = clamp(env.energy / 100, 0.2, 1.25);
   const pressureBonus = clamp(env.pressure / 65, 0.18, 1.2);
   const base = activity * energyBonus * pressureBonus;
@@ -383,17 +434,45 @@ function drawLayers(width, height, world) {
 }
 
 function drawFields(width, height) {
-  const cell = 42;
+  const cell = 34;
   for (let y = 0; y < height; y += cell) {
     for (let x = 0; x < width; x += cell) {
       const env = envAt(x / width, y / height);
-      ctx.fillStyle = `rgba(240, 106, 92, ${env.rad / 520})`;
+      const tempAlpha = clamp((env.temp + 120) / 180, 0, 1) * 0.14;
+      const saltAlpha = clamp(env.salt / 100, 0, 1) * 0.16;
+      const radAlpha = clamp(env.rad / 100, 0, 1) * 0.24;
+      ctx.fillStyle = `rgba(240, 106, 92, ${radAlpha})`;
       ctx.fillRect(x, y, cell, cell);
-      ctx.fillStyle = `rgba(103, 215, 230, ${env.salt / 740})`;
+      ctx.fillStyle = `rgba(103, 215, 230, ${saltAlpha})`;
       ctx.fillRect(x, y, cell, cell);
-      ctx.fillStyle = `rgba(240, 180, 77, ${clamp((env.temp + 210) / 360, 0, 1) * 0.07})`;
+      ctx.fillStyle = `rgba(240, 180, 77, ${tempAlpha})`;
       ctx.fillRect(x, y, cell, cell);
     }
+  }
+  drawEnvironmentContours(width, height);
+}
+
+function drawEnvironmentContours(width, height) {
+  const bands = [
+    { color: "rgba(240, 180, 77, .46)", y: 0.30 + climate.greenhouse / 180, label: "온도 상승" },
+    { color: "rgba(103, 215, 230, .42)", y: worlds[worldKey].ocean ? 0.58 : 0.50, label: "염도/수분" },
+    { color: "rgba(240, 106, 92, .45)", y: 0.18 + climate.shielding * 0.28, label: "방사선" }
+  ];
+  ctx.font = "700 13px Segoe UI, Malgun Gothic, sans-serif";
+  for (const band of bands) {
+    const y = clamp(band.y, 0.12, 0.86) * height;
+    ctx.strokeStyle = band.color;
+    ctx.lineWidth = 2;
+    ctx.setLineDash([9, 10]);
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    for (let x = 0; x <= width; x += 24) {
+      ctx.lineTo(x, y + Math.sin(x * 0.012 + elapsed * 0.04) * 9);
+    }
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = band.color.replace(/[\d.]+\)$/u, ".9)");
+    ctx.fillText(band.label, 28, y - 8);
   }
 }
 
@@ -473,6 +552,7 @@ function updateHud() {
   document.querySelector("#clock").textContent = `${Math.floor(elapsed).toLocaleString("ko-KR")}년`;
   document.querySelector("#population").textContent = agents.length;
   document.querySelector("#fitness").textContent = `${Math.round(averageFitness() * 100)}%`;
+  document.querySelector("#gasFitness").textContent = `${Math.round(gasSuitability() * 100)}%`;
   document.querySelector("#terraform").textContent = `${Math.round(terraform)}%`;
   document.querySelector("#habitability").textContent = `${Math.round(terraform)}%`;
   const nowClimate = climateEffects();
@@ -573,7 +653,7 @@ function drawGasChart() {
 function loop(now) {
   const realDt = Math.min((now - lastTime) / 1000, 0.05);
   lastTime = now;
-  const scaledDt = realDt * timeScale;
+  const scaledDt = realDt * timeScale * 0.18;
   if (scaledDt > 0) {
     const steps = Math.max(1, Math.ceil(scaledDt / 0.05));
     const step = scaledDt / steps;
