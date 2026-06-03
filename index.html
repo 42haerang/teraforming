@@ -3,14 +3,14 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>외계 천체 테라포밍 시뮬레이터</title>
-    <link rel="stylesheet" href="styles.css?v=population-atmosphere-5" />
+    <title>극한생물 대기 전환 시뮬레이터</title>
+    <link rel="stylesheet" href="styles.css?v=goal-population-6" />
   </head>
   <body>
     <main class="app">
       <header class="topbar">
         <div class="brand">
-          <strong>극한생물 테라포밍 실험</strong>
+          <strong>극한생물 대기 전환 실험</strong>
           <span id="clock">0년</span>
         </div>
         <label class="select-control">
@@ -34,7 +34,7 @@
         <canvas id="field"></canvas>
         <div class="world-name">
           <h1 id="worldName"></h1>
-          <p id="worldLine"></p>
+          <p>목표: 극한생물이 생존·번식하면서 대기 조성비를 인간에게 필요한 방향으로 바꿀 수 있는지 관찰</p>
         </div>
         <div class="legend">
           <span><i class="temp"></i>온도</span>
@@ -85,20 +85,12 @@
             <strong id="shielding">0%</strong>
           </div>
           <div>
-            <span>현재 위치 평균</span>
-            <strong id="localEnv">-</strong>
-          </div>
-          <div>
             <span>생존 조건</span>
             <strong id="conditionRange">-</strong>
           </div>
         </section>
       </aside>
-
-      <footer class="source">
-        NASA Mars · NASA Europa Clipper · NASA Cassini Enceladus 기반, 내부 수치는 발표용 단순 모델
-      </footer>
     </main>
-    <script src="app.js?v=population-atmosphere-5"></script>
+    <script src="app.js?v=goal-population-6"></script>
   </body>
 </html>
