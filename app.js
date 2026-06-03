@@ -97,6 +97,8 @@ const organisms = {
 };
 
 const gasColors = { CO2: "#f06a5c", O2: "#70d77b", N2: "#67d7e6", Ar: "#b9a5ff", CH4: "#f0b44d", H2O: "#82d9ff" };
+const seedPopulation = 72;
+const carryingCapacity = 260;
 const canvas = document.querySelector("#field");
 const ctx = canvas.getContext("2d");
 const gasChart = document.querySelector("#gasChart");
@@ -176,14 +178,13 @@ window.addEventListener("resize", resize);
 function reset() {
   const world = worlds[worldKey];
   atmosphere = { ...world.atmosphere };
-  agents = Array.from({ length: 42 }, () => spawnAgent());
+  agents = Array.from({ length: seedPopulation }, () => spawnAgent());
   terraform = 0;
   elapsed = 0;
   historyTimer = 0;
   gasHistory = [snapshotAtmosphere()];
   lastTime = performance.now();
   document.querySelector("#worldName").textContent = world.name;
-  document.querySelector("#worldLine").textContent = world.line;
   document.querySelector("#metabolism").textContent = organisms[organismKey].metabolism;
 }
 
@@ -314,38 +315,69 @@ function update(dt) {
     agent.fitness = fitnessAt(agent.x, agent.y);
     const gasScore = gasSuitability(organism);
     const oldAgeStress = clamp((agent.age - agent.lifespan * 0.72) / (agent.lifespan * 0.28), 0, 1);
-    agent.energy += (agent.fitness - 0.48) * gasScore * dt * 0.32;
-    agent.energy -= dt * (0.012 + oldAgeStress * 0.038 + (1 - gasScore) * 0.055);
+    agent.energy += (agent.fitness - 0.44) * gasScore * dt * 0.38;
+    agent.energy -= dt * (0.006 + oldAgeStress * 0.026 + (1 - gasScore) * 0.065);
   }
 
   agents = agents.filter((agent) => agent.energy > 0 && agent.age < agent.lifespan);
 
-  if (agents.length < 170) {
+  if (agents.length < carryingCapacity) {
     const babies = [];
+    const gasScore = gasSuitability(organism);
     for (const agent of agents) {
-      if (agent.fitness > 0.68 && gasSuitability(organism) > 0.42 && agent.energy > 0.9 && Math.random() < dt * 0.42) {
-        agent.energy *= 0.58;
-        babies.push({ ...spawnAgent(), x: clamp(agent.x + (Math.random() - 0.5) * 0.04, 0.04, 0.96), y: clamp(agent.y + (Math.random() - 0.5) * 0.04, 0.16, 0.94), energy: 0.72 });
+      if (agent.fitness > 0.52 && gasScore > 0.52 && agent.energy > 0.62 && Math.random() < dt * 0.58) {
+        agent.energy *= 0.72;
+        babies.push(makeBaby(agent));
       }
     }
     agents.push(...babies);
+    stabilizeViablePopulation(dt, gasScore);
+    agents = agents.slice(0, carryingCapacity);
   }
 
   applyMetabolism(dt);
 
-  const avgFitness = averageFitness();
-  const livingForce = Math.min(1, agents.length / 90) * Math.max(0, avgFitness - 0.42);
-  if (avgFitness > 0.58 && agents.length > 18) {
-    terraform = clamp(terraform + livingForce * dt * 1.8, 0, 100);
-  } else {
-    terraform = clamp(terraform - dt * 0.12, 0, 100);
-  }
+  terraform = humanAtmosphereScore();
 
   historyTimer += dt;
   if (historyTimer > 0.45) {
     gasHistory.push(snapshotAtmosphere());
     gasHistory = gasHistory.slice(-90);
     historyTimer = 0;
+  }
+}
+
+function humanAtmosphereScore() {
+  const o2 = gasRatio("O2");
+  const co2 = gasRatio("CO2");
+  const ch4 = gasRatio("CH4");
+  const n2 = gasRatio("N2") + gasRatio("Ar");
+  const total = atmosphereTotal();
+  const oxygen = scoreRange(o2, [18, 24]);
+  const bufferGas = scoreRange(n2, [55, 82]);
+  const lowCo2 = clamp(1 - co2 / 4, 0, 1);
+  const lowMethane = clamp(1 - ch4 / 3, 0, 1);
+  const pressure = clamp(total / 80, 0, 1);
+  return Math.round((oxygen * 0.34 + bufferGas * 0.2 + lowCo2 * 0.2 + lowMethane * 0.12 + pressure * 0.14) * 100);
+}
+
+function makeBaby(parent) {
+  return {
+    ...spawnAgent(),
+    x: clamp(parent.x + (Math.random() - 0.5) * 0.05, 0.04, 0.96),
+    y: clamp(parent.y + (Math.random() - 0.5) * 0.05, 0.16, 0.94),
+    energy: 0.68 + Math.random() * 0.12
+  };
+}
+
+function stabilizeViablePopulation(dt, gasScore) {
+  if (agents.length >= seedPopulation) return;
+  if (gasScore < 0.58 || averageFitness() < 0.5) return;
+  const parents = agents.filter((agent) => agent.fitness > 0.52 && agent.energy > 0.35);
+  if (!parents.length) return;
+  const needed = Math.min(seedPopulation - agents.length, Math.ceil(dt * 3));
+  for (let i = 0; i < needed; i += 1) {
+    agents.push(makeBaby(parents[Math.floor(Math.random() * parents.length)]));
   }
 }
 
@@ -559,9 +591,6 @@ function updateHud() {
   const local = averageLocalEnv();
   document.querySelector("#greenhouse").textContent = `${nowClimate.greenhouse >= 0 ? "+" : ""}${nowClimate.greenhouse.toFixed(1)}°C`;
   document.querySelector("#shielding").textContent = `${Math.round(nowClimate.shielding * 100)}%`;
-  document.querySelector("#localEnv").textContent = local
-    ? `${local.temp.toFixed(1)}°C · 방사선 ${Math.round(local.rad)} · 압력 ${Math.round(local.pressure)}`
-    : "-";
   document.querySelector("#metabolism").textContent = metabolismSummary(local);
   const organism = organisms[organismKey];
   document.querySelector("#conditionRange").textContent =

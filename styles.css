@@ -310,7 +310,7 @@ canvas {
   border-right: 0;
 }
 
-.env-readout div:nth-last-child(-n+2) {
+.env-readout div:last-child {
   grid-column: 1 / -1;
   border-right: 0;
 }
@@ -327,20 +327,9 @@ canvas {
   font-size: 20px;
 }
 
-.stats div:last-child strong, .env-readout div:nth-last-child(-n+2) strong {
+.stats div:last-child strong, .env-readout div:last-child strong {
   font-size: 14px;
   line-height: 1.35;
-}
-
-.source {
-  position: absolute;
-  z-index: 4;
-  right: 18px;
-  bottom: 14px;
-  max-width: 520px;
-  color: rgba(248, 251, 247, .55);
-  font-size: 12px;
-  text-align: right;
 }
 
 @media (max-width: 900px) {
@@ -391,7 +380,4 @@ canvas {
     bottom: auto;
   }
 
-  .source {
-    display: none;
-  }
 }
