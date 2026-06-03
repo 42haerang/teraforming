@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>외계 천체 테라포밍 시뮬레이터</title>
-    <link rel="stylesheet" href="styles.css?v=feedback-model-3" />
+    <link rel="stylesheet" href="styles.css?v=population-atmosphere-5" />
   </head>
   <body>
     <main class="app">
@@ -23,9 +23,10 @@
         </label>
         <label class="speed-control">
           시간
-          <input id="speedRange" type="range" min="0" max="120" value="20" />
-          <strong id="speedLabel">20x</strong>
+          <input id="speedRange" type="range" min="0" max="120" value="8" />
+          <strong id="speedLabel">8x</strong>
         </label>
+        <button id="pauseBtn" type="button">정지</button>
         <button id="resetBtn" type="button">재시작</button>
       </header>
 
@@ -69,6 +70,10 @@
             <span>주요 대사</span>
             <strong id="metabolism">-</strong>
           </div>
+          <div>
+            <span>대기 적합도</span>
+            <strong id="gasFitness">0%</strong>
+          </div>
         </section>
         <section class="panel env-readout">
           <div>
@@ -94,6 +99,6 @@
         NASA Mars · NASA Europa Clipper · NASA Cassini Enceladus 기반, 내부 수치는 발표용 단순 모델
       </footer>
     </main>
-    <script src="app.js?v=feedback-model-3"></script>
+    <script src="app.js?v=population-atmosphere-5"></script>
   </body>
 </html>
