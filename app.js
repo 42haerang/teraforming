@@ -456,8 +456,22 @@ function update(dt) {
       if (score > best.score) best = { x: nx, y: ny, score };
     }
 
-    agent.vx = agent.vx * 0.62 + (best.x - agent.x) * 1.2 + (Math.random() - 0.5) * 0.002;
-    agent.vy = agent.vy * 0.62 + (best.y - agent.y) * 1.2 + (Math.random() - 0.5) * 0.002;
+    let spreadX = 0;
+    let spreadY = 0;
+    for (const other of agents) {
+      if (other === agent) continue;
+      const dx = agent.x - other.x;
+      const dy = agent.y - other.y;
+      const distance = Math.hypot(dx, dy);
+      if (distance > 0 && distance < 0.045) {
+        const push = (0.045 - distance) / 0.045;
+        spreadX += dx / distance * push;
+        spreadY += dy / distance * push;
+      }
+    }
+
+    agent.vx = agent.vx * 0.62 + (best.x - agent.x) * 1.08 + spreadX * 0.004 + (Math.random() - 0.5) * 0.0025;
+    agent.vy = agent.vy * 0.62 + (best.y - agent.y) * 1.08 + spreadY * 0.004 + (Math.random() - 0.5) * 0.0025;
     agent.x = clamp(agent.x + agent.vx * dt * 1.4, 0.04, 0.96);
     agent.y = clamp(agent.y + agent.vy * dt * 1.4, 0.16, 0.94);
     agent.fitness = fitnessAt(agent.x, agent.y);
@@ -516,8 +530,8 @@ function humanAtmosphereScore() {
 function makeBaby(parent) {
   return {
     ...spawnAgent(),
-    x: clamp(parent.x + (Math.random() - 0.5) * 0.05, 0.04, 0.96),
-    y: clamp(parent.y + (Math.random() - 0.5) * 0.05, 0.16, 0.94),
+    x: clamp(parent.x + (Math.random() - 0.5) * 0.07, 0.04, 0.96),
+    y: clamp(parent.y + (Math.random() - 0.5) * 0.07, 0.16, 0.94),
     energy: 0.68 + Math.random() * 0.12
   };
 }
