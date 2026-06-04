@@ -306,12 +306,12 @@ function spawnAgent() {
   const organism = organisms[organismKey];
   const oceanBias = world.ocean ? 0.58 : 0.36;
   const refuge = (world.refuges || [])[0];
-  const seedNearRefuge = refuge && Math.random() < 0.68;
+  const seedNearRefuge = refuge && Math.random() < 0.18;
   const x = seedNearRefuge
-    ? clamp(refuge.x + (Math.random() - 0.5) * refuge.r * 1.1, 0.04, 0.96)
+    ? clamp(refuge.x + (Math.random() - 0.5) * refuge.r * 2.2, 0.04, 0.96)
     : 0.18 + Math.random() * 0.64;
   const y = seedNearRefuge
-    ? clamp(refuge.y + (Math.random() - 0.5) * refuge.r * 1.1, 0.16, 0.94)
+    ? clamp(refuge.y + (Math.random() - 0.5) * refuge.r * 2.2, 0.16, 0.94)
     : oceanBias + Math.random() * 0.32;
   return {
     x,
@@ -470,8 +470,10 @@ function update(dt) {
       }
     }
 
-    agent.vx = agent.vx * 0.58 + (best.x - agent.x) * 0.82 + spreadX * 0.014 + (Math.random() - 0.5) * 0.004;
-    agent.vy = agent.vy * 0.58 + (best.y - agent.y) * 0.82 + spreadY * 0.014 + (Math.random() - 0.5) * 0.004;
+    const searchPull = 0.22 + clamp(elapsed / 90, 0, 1) * 0.8;
+    const roaming = 0.006 * (1 - clamp(elapsed / 120, 0, 0.72));
+    agent.vx = agent.vx * 0.58 + (best.x - agent.x) * searchPull + spreadX * 0.014 + (Math.random() - 0.5) * roaming;
+    agent.vy = agent.vy * 0.58 + (best.y - agent.y) * searchPull + spreadY * 0.014 + (Math.random() - 0.5) * roaming;
     agent.x = clamp(agent.x + agent.vx * dt * 1.4, 0.04, 0.96);
     agent.y = clamp(agent.y + agent.vy * dt * 1.4, 0.16, 0.94);
     agent.fitness = fitnessAt(agent.x, agent.y);
