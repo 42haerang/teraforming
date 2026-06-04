@@ -463,15 +463,15 @@ function update(dt) {
       const dx = agent.x - other.x;
       const dy = agent.y - other.y;
       const distance = Math.hypot(dx, dy);
-      if (distance > 0 && distance < 0.045) {
-        const push = (0.045 - distance) / 0.045;
+      if (distance > 0 && distance < 0.085) {
+        const push = (0.085 - distance) / 0.085;
         spreadX += dx / distance * push;
         spreadY += dy / distance * push;
       }
     }
 
-    agent.vx = agent.vx * 0.62 + (best.x - agent.x) * 1.08 + spreadX * 0.004 + (Math.random() - 0.5) * 0.0025;
-    agent.vy = agent.vy * 0.62 + (best.y - agent.y) * 1.08 + spreadY * 0.004 + (Math.random() - 0.5) * 0.0025;
+    agent.vx = agent.vx * 0.58 + (best.x - agent.x) * 0.82 + spreadX * 0.014 + (Math.random() - 0.5) * 0.004;
+    agent.vy = agent.vy * 0.58 + (best.y - agent.y) * 0.82 + spreadY * 0.014 + (Math.random() - 0.5) * 0.004;
     agent.x = clamp(agent.x + agent.vx * dt * 1.4, 0.04, 0.96);
     agent.y = clamp(agent.y + agent.vy * dt * 1.4, 0.16, 0.94);
     agent.fitness = fitnessAt(agent.x, agent.y);
@@ -479,7 +479,7 @@ function update(dt) {
     const refugeScore = refugeScoreAt(agent.x, agent.y);
     const oldAgeStress = clamp((agent.age - agent.lifespan * 0.72) / (agent.lifespan * 0.28), 0, 1);
     agent.energy += (agent.fitness - 0.44) * gasScore * dt * 0.38;
-    const outsideStress = refugeScore < 0.35 ? 0.85 : (1 - refugeScore) * 0.04;
+    const outsideStress = refugeScore < 0.35 ? 1.55 : (1 - refugeScore) * 0.04;
     agent.energy -= dt * (0.004 + oldAgeStress * 0.018 + (1 - gasScore) * 0.055 + outsideStress);
   }
 
@@ -530,8 +530,8 @@ function humanAtmosphereScore() {
 function makeBaby(parent) {
   return {
     ...spawnAgent(),
-    x: clamp(parent.x + (Math.random() - 0.5) * 0.07, 0.04, 0.96),
-    y: clamp(parent.y + (Math.random() - 0.5) * 0.07, 0.16, 0.94),
+    x: clamp(parent.x + (Math.random() - 0.5) * 0.12, 0.04, 0.96),
+    y: clamp(parent.y + (Math.random() - 0.5) * 0.12, 0.16, 0.94),
     energy: 0.68 + Math.random() * 0.12
   };
 }
@@ -690,8 +690,8 @@ function drawAgents(width, height, organism) {
     const x = agent.x * width;
     const y = agent.y * height;
     const refugeScore = refugeScoreAt(agent.x, agent.y);
-    const outsideRefuge = refugeScore < 0.35;
-    const radius = 3.5 + agent.fitness * 5.5;
+    const outsideRefuge = refugeScore <= 0;
+    const radius = 2.4 + agent.fitness * 3.8;
     ctx.beginPath();
     ctx.fillStyle = outsideRefuge ? "rgba(240, 106, 92, .72)" : organism.color;
     ctx.shadowColor = outsideRefuge ? "rgba(240, 106, 92, .9)" : organism.color;
