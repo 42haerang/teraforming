@@ -63,7 +63,7 @@ const organisms = {
     name: "화성 남세균 (Chroococcidiopsis sp. CCMEE 029)",
     metabolism: "광합성 · CO2 소모 · O2 배출",
     lifespan: 90,
-    gasNeed: { CO2: [0.04, 100], H2O: [0.001, 100] },
+    gasNeed: { CO2: [1, 100], O2: [0, 40], H2O: [0.001, 100] },
     temp: [15, 35],
     salt: [0, 35],
     rad: [0, 0.2],
@@ -134,6 +134,7 @@ const organisms = {
 const gasColors = { CO2: "#f06a5c", O2: "#70d77b", N2: "#67d7e6", Ar: "#b9a5ff", CH4: "#f0b44d", H2O: "#82d9ff", H2: "#f7f4c4" };
 const seedPopulation = 72;
 const carryingCapacity = 260;
+const simulationStep = 0.2;
 const canvas = document.querySelector("#field");
 const ctx = canvas.getContext("2d");
 const gasChart = document.querySelector("#gasChart");
@@ -270,7 +271,9 @@ function rememberTimeline() {
 function jumpYears(years) {
   if (years > 0) {
     const wasPaused = paused;
-    for (let i = 0; i < years; i += 1) update(1);
+    for (let remaining = years; remaining > 0; remaining -= simulationStep) {
+      update(Math.min(simulationStep, remaining));
+    }
     if (wasPaused) {
       paused = true;
       timeScale = 0;
@@ -303,12 +306,12 @@ function spawnAgent() {
   const organism = organisms[organismKey];
   const oceanBias = world.ocean ? 0.58 : 0.36;
   const refuge = (world.refuges || [])[0];
-  const seedNearRefuge = refuge && Math.random() < 0.45;
+  const seedNearRefuge = refuge && Math.random() < 0.68;
   const x = seedNearRefuge
-    ? clamp(refuge.x + (Math.random() - 0.5) * refuge.r * 1.6, 0.04, 0.96)
+    ? clamp(refuge.x + (Math.random() - 0.5) * refuge.r * 1.1, 0.04, 0.96)
     : 0.18 + Math.random() * 0.64;
   const y = seedNearRefuge
-    ? clamp(refuge.y + (Math.random() - 0.5) * refuge.r * 1.6, 0.16, 0.94)
+    ? clamp(refuge.y + (Math.random() - 0.5) * refuge.r * 1.1, 0.16, 0.94)
     : oceanBias + Math.random() * 0.32;
   return {
     x,
@@ -352,6 +355,15 @@ function applyRefugeEnvironment(baseEnv, x, y, world) {
     env.salt = lerp(env.salt, refuge.salt, influence);
   }
   return env;
+}
+
+function refugeScoreAt(x, y, world = worlds[worldKey]) {
+  const refuges = world.refuges || [];
+  if (!refuges.length) return 1;
+  return Math.max(...refuges.map((refuge) => {
+    const distance = Math.hypot(x - refuge.x, y - refuge.y);
+    return clamp(1 - distance / refuge.r, 0, 1);
+  }));
 }
 
 function atmosphereTotal() {
@@ -415,10 +427,18 @@ function fitnessAt(x, y) {
     survivalRangeScore(env.energy, organism.energy)
   ];
   const localScore = scores.reduce((sum, score) => sum + score, 0) / scores.length;
-  return localScore * (0.15 + gasSuitability(organism) * 0.85);
+  const refugeScore = refugeScoreAt(x, y);
+  return localScore * (0.15 + gasSuitability(organism) * 0.85) * (0.05 + refugeScore * 0.95);
 }
 
 function update(dt) {
+  if (dt > simulationStep) {
+    for (let remaining = dt; remaining > 0; remaining -= simulationStep) {
+      update(Math.min(simulationStep, remaining));
+    }
+    return;
+  }
+
   elapsed += dt;
   const organism = organisms[organismKey];
 
@@ -436,30 +456,33 @@ function update(dt) {
       if (score > best.score) best = { x: nx, y: ny, score };
     }
 
-    agent.vx = agent.vx * 0.78 + (best.x - agent.x) * 2.7 + (Math.random() - 0.5) * 0.004;
-    agent.vy = agent.vy * 0.78 + (best.y - agent.y) * 2.7 + (Math.random() - 0.5) * 0.004;
-    agent.x = clamp(agent.x + agent.vx * dt * 9, 0.04, 0.96);
-    agent.y = clamp(agent.y + agent.vy * dt * 9, 0.16, 0.94);
+    agent.vx = agent.vx * 0.62 + (best.x - agent.x) * 1.2 + (Math.random() - 0.5) * 0.002;
+    agent.vy = agent.vy * 0.62 + (best.y - agent.y) * 1.2 + (Math.random() - 0.5) * 0.002;
+    agent.x = clamp(agent.x + agent.vx * dt * 1.4, 0.04, 0.96);
+    agent.y = clamp(agent.y + agent.vy * dt * 1.4, 0.16, 0.94);
     agent.fitness = fitnessAt(agent.x, agent.y);
     const gasScore = gasSuitability(organism);
+    const refugeScore = refugeScoreAt(agent.x, agent.y);
     const oldAgeStress = clamp((agent.age - agent.lifespan * 0.72) / (agent.lifespan * 0.28), 0, 1);
     agent.energy += (agent.fitness - 0.44) * gasScore * dt * 0.38;
-    agent.energy -= dt * (0.006 + oldAgeStress * 0.026 + (1 - gasScore) * 0.065);
+    const outsideStress = refugeScore < 0.35 ? 0.85 : (1 - refugeScore) * 0.04;
+    agent.energy -= dt * (0.004 + oldAgeStress * 0.018 + (1 - gasScore) * 0.055 + outsideStress);
   }
 
   agents = agents.filter((agent) => agent.energy > 0 && agent.age < agent.lifespan);
 
-  if (agents.length < carryingCapacity) {
-    const babies = [];
-    const gasScore = gasSuitability(organism);
-    for (const agent of agents) {
-      if (agent.fitness > 0.52 && gasScore > 0.52 && agent.energy > 0.62 && Math.random() < dt * 0.58) {
-        agent.energy *= 0.72;
-        babies.push(makeBaby(agent));
-      }
+  const babies = [];
+  const gasScore = gasSuitability(organism);
+  for (const agent of agents) {
+    if (agent.fitness > 0.45 && refugeScoreAt(agent.x, agent.y) > 0.35 && gasScore > 0.52 && agent.energy > 0.52 && Math.random() < dt * 0.52) {
+      agent.energy *= 0.72;
+      babies.push(makeBaby(agent));
     }
-    agents.push(...babies);
-    stabilizeViablePopulation(dt, gasScore);
+  }
+  agents.push(...babies);
+  stabilizeViablePopulation(dt, gasScore);
+  if (agents.length > carryingCapacity) {
+    agents.sort((a, b) => populationRank(b) - populationRank(a));
     agents = agents.slice(0, carryingCapacity);
   }
 
@@ -499,10 +522,15 @@ function makeBaby(parent) {
   };
 }
 
+function populationRank(agent) {
+  const agePenalty = clamp(agent.age / Math.max(agent.lifespan, 1), 0, 1);
+  return agent.fitness * 1.4 + agent.energy * 0.6 + refugeScoreAt(agent.x, agent.y) * 0.8 - agePenalty;
+}
+
 function stabilizeViablePopulation(dt, gasScore) {
   if (agents.length >= seedPopulation) return;
   if (gasScore < 0.58 || averageFitness() < 0.5) return;
-  const parents = agents.filter((agent) => agent.fitness > 0.52 && agent.energy > 0.35);
+  const parents = agents.filter((agent) => agent.fitness > 0.52 && agent.energy > 0.35 && refugeScoreAt(agent.x, agent.y) > 0.45);
   if (!parents.length) return;
   const needed = Math.min(seedPopulation - agents.length, Math.ceil(dt * 3));
   for (let i = 0; i < needed; i += 1) {
@@ -514,6 +542,7 @@ function applyMetabolism(dt) {
   const organism = organisms[organismKey];
   for (const agent of agents) {
     if (agent.fitness < 0.36) continue;
+    if (refugeScoreAt(agent.x, agent.y) < 0.35) continue;
     const env = envAt(agent.x, agent.y);
     const exchange = gasExchange(organism, env, agent.fitness);
     for (const [gas, delta] of Object.entries(exchange)) {
@@ -524,7 +553,7 @@ function applyMetabolism(dt) {
 }
 
 function gasExchange(organism, env, fitness) {
-  const activity = Math.max(0, fitness - 0.34) * gasSuitability(organism) * 0.018;
+  const activity = Math.max(0, fitness - 0.34) * gasSuitability(organism) * 0.00022;
   const energyBonus = clamp(env.energy / 100, 0.2, 1.25);
   const pressureBonus = clamp(env.pressure / 65, 0.18, 1.2);
   const base = activity * energyBonus * pressureBonus;
@@ -533,7 +562,14 @@ function gasExchange(organism, env, fitness) {
     return { CO2: -base * 0.75, H2: -base * 3.0, CH4: base * 0.75 };
   }
   if (organismKey === "chroococcidiopsis" || organismKey === "halophile") {
-    return { CO2: -base * 0.9, O2: base * 0.65 };
+    const co2 = gasRatio("CO2");
+    const o2 = gasRatio("O2");
+    const photosynthesisGate = clamp(co2 / 12, 0, 1) * clamp((48 - o2) / 24, 0, 1);
+    const respirationGate = 1 - photosynthesisGate;
+    return {
+      CO2: -base * 0.9 * photosynthesisGate + base * 0.28 * respirationGate,
+      O2: base * 0.65 * photosynthesisGate - base * 0.28 * respirationGate
+    };
   }
   if (organismKey === "psychro" || organismKey === "shewanella") {
     return { O2: -base * 0.45, CO2: base * 0.45 };
@@ -567,7 +603,6 @@ function draw() {
   ctx.fillRect(0, 0, width, height);
 
   drawLayers(width, height, world);
-  drawRefuges(width, height, world);
   drawFields(width, height);
   drawAgents(width, height, organism);
   drawAtmosphereTint(width, height);
@@ -640,15 +675,17 @@ function drawAgents(width, height, organism) {
   for (const agent of agents) {
     const x = agent.x * width;
     const y = agent.y * height;
+    const refugeScore = refugeScoreAt(agent.x, agent.y);
+    const outsideRefuge = refugeScore < 0.35;
     const radius = 3.5 + agent.fitness * 5.5;
     ctx.beginPath();
-    ctx.fillStyle = organism.color;
-    ctx.shadowColor = organism.color;
-    ctx.shadowBlur = 16 + agent.fitness * 20;
+    ctx.fillStyle = outsideRefuge ? "rgba(240, 106, 92, .72)" : organism.color;
+    ctx.shadowColor = outsideRefuge ? "rgba(240, 106, 92, .9)" : organism.color;
+    ctx.shadowBlur = outsideRefuge ? 6 : 16 + agent.fitness * 20;
     ctx.arc(x, y, radius, 0, Math.PI * 2);
     ctx.fill();
     ctx.shadowBlur = 0;
-    ctx.strokeStyle = `rgba(255,255,255,${0.25 + agent.fitness * 0.55})`;
+    ctx.strokeStyle = outsideRefuge ? "rgba(240, 106, 92, .85)" : `rgba(255,255,255,${0.25 + agent.fitness * 0.55})`;
     ctx.lineWidth = 1.5;
     ctx.stroke();
   }
@@ -753,7 +790,6 @@ function criteriaText(world, organism) {
     `압력: ${world.facts.pressure}`,
     `방사선: ${world.facts.radiation}`,
     `염도: ${world.facts.salinity}`,
-    `보호 서식지: ${(world.refuges || []).map((refuge) => refuge.name).join(", ")}`,
     "",
     `[${organism.name} 생존 조건]`,
     `온도: ${organism.temp[0]}~${organism.temp[1]}°C`,
