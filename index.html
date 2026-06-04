@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>극한생물 대기 전환 시뮬레이터</title>
-    <link rel="stylesheet" href="styles.css?v=clean-criteria-10" />
+    <link rel="stylesheet" href="styles.css?v=science-rebuild-11" />
   </head>
   <body>
     <main class="app">
@@ -25,6 +25,14 @@
           시간
           <input id="speedRange" type="range" min="0" max="120" value="8" />
           <strong id="speedLabel">8x</strong>
+        </label>
+        <label class="select-control">
+          그래프
+          <select id="graphSelect">
+            <option value="gas">대기 조성비</option>
+            <option value="temp">온도</option>
+            <option value="rad">방사선</option>
+          </select>
         </label>
       </header>
 
@@ -87,6 +95,6 @@
         </section>
       </aside>
     </main>
-    <script src="app.js?v=clean-criteria-10"></script>
+    <script src="app.js?v=science-rebuild-11"></script>
   </body>
 </html>

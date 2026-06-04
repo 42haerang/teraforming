@@ -1,21 +1,35 @@
 const worlds = {
   mars: {
     name: "화성",
-    line: "차갑고 건조하며 CO2가 압도적으로 많은 대기. 지하 얼음과 방사선 회피가 생존의 핵심.",
+    line: "NASA fact sheet 기반: CO2 대기, 낮은 압력, 낮은 평균 온도, 표면 방사선.",
     sky: ["#2b1410", "#8b3e2f", "#d48b61"],
     ocean: false,
-    recommended: "psychro",
-    atmosphere: { CO2: 95, N2: 2.7, Ar: 1.6, O2: 0.13, CH4: 0.01 },
-    env: { tempTop: -82, tempBottom: -24, saltTop: 12, saltBottom: 45, radTop: 92, radBottom: 34, pressureTop: 6, pressureBottom: 28, energyTop: 22, energyBottom: 38 }
+    recommended: "chroococcidiopsis",
+    atmosphere: { CO2: 95.32, N2: 2.7, Ar: 1.6, O2: 0.13, CH4: 0.0001, H2O: 0.03 },
+    facts: {
+      atmosphere: "CO2 95.32%, N2 2.7%, Ar 1.6%, O2 0.13%, H2O 0.03%(예상값)",
+      temperature: "평균 -63°C, 대략 -153~20°C",
+      pressure: "평균 6.35 mbar",
+      radiation: "표면 약 0.67 mSv/day",
+      salinity: "염수 가능, 전 행성 평균 염도 직접값 없음(예상값)"
+    },
+    env: { tempTop: -82, tempBottom: -24, saltTop: 2, saltBottom: 55, radTop: 0.67, radBottom: 0.05, pressureTop: 6.35, pressureBottom: 30, energyTop: 40, energyBottom: 55 }
   },
   europa: {
     name: "유로파",
     line: "얼음 지각 아래 바다와 조석 가열. 표면보다 내부 해양과 열수구 근처가 훨씬 유리하다.",
     sky: ["#071018", "#164456", "#a7d8df"],
     ocean: true,
-    recommended: "vent",
-    atmosphere: { O2: 86, H2O: 8, CO2: 3, N2: 2, CH4: 1 },
-    env: { tempTop: -160, tempBottom: 8, saltTop: 2, saltBottom: 58, radTop: 88, radBottom: 14, pressureTop: 1, pressureBottom: 86, energyTop: 10, energyBottom: 78 }
+    recommended: "shewanella",
+    atmosphere: { O2: 99, H2O: 0.8, CO2: 0.1, N2: 0.1, CH4: 0.01 },
+    facts: {
+      atmosphere: "매우 희박한 O2 대기, 조성비 세부값은 모델용(예상값)",
+      temperature: "표면 약 -160°C",
+      pressure: "표면 대기압 극히 낮음, 지하 바다 고압(예상값)",
+      radiation: "표면 강한 목성 방사선, 얼음 아래 급감(예상값)",
+      salinity: "지하 바다 염분 존재 가능, 범위는 해수 유사 가정(예상값)"
+    },
+    env: { tempTop: -160, tempBottom: 2, saltTop: 0, saltBottom: 35, radTop: 5400, radBottom: 0.01, pressureTop: 0.001, pressureBottom: 100, energyTop: 5, energyBottom: 82 }
   },
   enceladus: {
     name: "엔셀라두스",
@@ -23,40 +37,49 @@ const worlds = {
     sky: ["#06111c", "#1c5266", "#d2f1f2"],
     ocean: true,
     recommended: "methanogen",
-    atmosphere: { H2O: 91, CO2: 4, CH4: 2, N2: 2, O2: 1 },
-    env: { tempTop: -200, tempBottom: 16, saltTop: 1, saltBottom: 36, radTop: 58, radBottom: 8, pressureTop: 1, pressureBottom: 72, energyTop: 16, energyBottom: 90 }
+    atmosphere: { H2O: 91, CO2: 4, CH4: 2, H2: 2, N2: 1, O2: 0.01 },
+    facts: {
+      atmosphere: "분출기둥: H2O 주성분, CO2/CH4/H2 검출, 조성비는 모델용(예상값)",
+      temperature: "표면 약 -200°C",
+      pressure: "표면 대기 거의 없음, 내부 바다 고압(예상값)",
+      radiation: "토성권 방사선 낮음~중간, 내부 바다에서는 차폐(예상값)",
+      salinity: "내부 바다 염분 존재 가능(예상값)"
+    },
+    env: { tempTop: -200, tempBottom: 16, saltTop: 1, saltBottom: 35, radTop: 0.2, radBottom: 0.005, pressureTop: 0.001, pressureBottom: 80, energyTop: 18, energyBottom: 95 }
   }
 };
 
 const organisms = {
-  deinococcus: {
-    name: "방사선 내성균",
-    metabolism: "DNA 복구 · CO2 완만 고정",
-    lifespan: 140,
-    gasNeed: { CO2: [0.1, 100] },
-    temp: [-35, 42],
-    salt: [0, 25],
-    rad: [0, 96],
-    pressure: [0, 55],
-    energy: [12, 85],
+  chroococcidiopsis: {
+    name: "화성 남세균 (Chroococcidiopsis sp. CCMEE 029)",
+    metabolism: "광합성 · CO2 소모 · O2 배출",
+    lifespan: 90,
+    gasNeed: { CO2: [0.04, 100], H2O: [0.001, 100] },
+    temp: [15, 35],
+    salt: [0, 35],
+    rad: [0, 0.2],
+    pressure: [6, 1000],
+    energy: [35, 100],
     color: "#ff7367",
-    gasEffect: { CO2: -0.0009, O2: 0.0005, N2: 0.0001 }
+    gasEffect: { CO2: -0.0009, O2: 0.00065 },
+    evidence: "생존/광합성 연구 기반, 화성 표면 직접 노출은 불리하며 차폐 환경 필요"
   },
   psychro: {
-    name: "저온성 미생물",
-    metabolism: "저온 대사 · CO2 고정",
+    name: "저온성 세균 (Psychrobacter cryohalolentis K5)",
+    metabolism: "호기성/저온 대사 · O2 소모 · CO2 배출",
     lifespan: 110,
-    gasNeed: { CO2: [2, 100] },
-    temp: [-90, 12],
+    gasNeed: { O2: [0.1, 30] },
+    temp: [-10, 28],
     salt: [0, 42],
-    rad: [0, 48],
+    rad: [0, 0.05],
     pressure: [0, 70],
     energy: [8, 70],
     color: "#7ec8ff",
-    gasEffect: { CO2: -0.0012, O2: 0.0007, N2: 0.0001 }
+    gasEffect: { O2: -0.00045, CO2: 0.00045 },
+    evidence: "영구동토 저온성 세균. 방사선 내성 대표종이 아니므로 화성 표면 방사선에서는 사멸해야 함"
   },
   halophile: {
-    name: "호염성 미생물",
+    name: "고염성 조류 (Dunaliella salina)",
     metabolism: "염분 적응 · 탄소 고정",
     lifespan: 95,
     gasNeed: { CO2: [1, 100] },
@@ -66,37 +89,40 @@ const organisms = {
     pressure: [0, 80],
     energy: [10, 85],
     color: "#ffc35a",
-    gasEffect: { CO2: -0.0010, O2: 0.0004, CH4: 0.00015 }
+    gasEffect: { CO2: -0.0010, O2: 0.0004 },
+    evidence: "고염 환경 광합성 생물. 천체 적용은 염수 환경 가정(예상값)"
   },
   methanogen: {
-    name: "메탄생성균",
-    metabolism: "혐기성 대사 · CH4 생성",
+    name: "엔셀라두스 고세균 (Methanothermococcus okinawensis IH1)",
+    metabolism: "메탄생성 · H2/CO2 소모 · CH4 배출",
     lifespan: 85,
-    gasNeed: { CO2: [0.4, 100], O2: [0, 8], H2O: [0.4, 100] },
-    temp: [-12, 92],
+    gasNeed: { CO2: [0.1, 100], H2: [0.1, 100], O2: [0, 0.1] },
+    temp: [40, 65],
     salt: [0, 65],
-    rad: [0, 38],
+    rad: [0, 0.05],
     pressure: [25, 100],
     energy: [44, 100],
     color: "#7ee879",
-    gasEffect: { CO2: -0.0007, CH4: 0.0015, O2: -0.00025 }
+    gasEffect: { CO2: -0.0007, H2: -0.0028, CH4: 0.0007 },
+    evidence: "H2 + CO2 -> CH4 + H2O 메탄생성. 엔셀라두스 H2 검출과 연결"
   },
-  vent: {
-    name: "열수구 화학합성균",
-    metabolism: "화학합성 · O2/유기물 증가",
+  shewanella: {
+    name: "유로파 혐기성 세균 (Shewanella oneidensis MR-1)",
+    metabolism: "혐기성 호흡 · O2 소모 가능 · 금속산화물 환원",
     lifespan: 75,
-    gasNeed: { CO2: [0.2, 100], H2O: [1, 100] },
-    temp: [0, 118],
+    gasNeed: { O2: [0, 30], H2O: [0.1, 100] },
+    temp: [4, 40],
     salt: [18, 76],
-    rad: [0, 35],
+    rad: [0, 0.05],
     pressure: [48, 100],
     energy: [62, 100],
     color: "#61f0c5",
-    gasEffect: { CO2: -0.0015, O2: 0.0010, CH4: 0.00025 }
+    gasEffect: { O2: -0.00025, CO2: 0.00025 },
+    evidence: "유로파 지하 바다의 무산소/고압 환경을 단순화한 선택. 압력/방사선 범위는 내부 바다 가정(예상값)"
   }
 };
 
-const gasColors = { CO2: "#f06a5c", O2: "#70d77b", N2: "#67d7e6", Ar: "#b9a5ff", CH4: "#f0b44d", H2O: "#82d9ff" };
+const gasColors = { CO2: "#f06a5c", O2: "#70d77b", N2: "#67d7e6", Ar: "#b9a5ff", CH4: "#f0b44d", H2O: "#82d9ff", H2: "#f7f4c4" };
 const seedPopulation = 72;
 const carryingCapacity = 260;
 const canvas = document.querySelector("#field");
@@ -107,9 +133,10 @@ const worldSelect = document.querySelector("#worldSelect");
 const organismSelect = document.querySelector("#organismSelect");
 const speedRange = document.querySelector("#speedRange");
 const speedLabel = document.querySelector("#speedLabel");
+const graphSelect = document.querySelector("#graphSelect");
 
 let worldKey = "mars";
-let organismKey = "psychro";
+let organismKey = worlds[worldKey].recommended;
 let atmosphere;
 let agents = [];
 let terraform = 0;
@@ -184,6 +211,7 @@ function togglePause() {
 }
 
 window.addEventListener("resize", resize);
+graphSelect.addEventListener("change", drawGasChart);
 
 function reset() {
   const world = worlds[worldKey];
@@ -463,18 +491,15 @@ function gasExchange(organism, env, fitness) {
   const base = activity * energyBonus * pressureBonus;
 
   if (organismKey === "methanogen") {
-    return { CO2: -base * 0.75, H2O: -base * 0.18, CH4: base * 1.28 };
+    return { CO2: -base * 0.75, H2: -base * 3.0, CH4: base * 0.75 };
   }
-  if (organismKey === "vent") {
-    return { CO2: -base * 0.9, H2O: -base * 0.08, O2: base * 0.72, CH4: base * 0.12 };
+  if (organismKey === "chroococcidiopsis" || organismKey === "halophile") {
+    return { CO2: -base * 0.9, O2: base * 0.65 };
   }
-  if (organismKey === "halophile") {
-    return { CO2: -base * 0.65, O2: base * 0.34, CH4: base * 0.08 };
+  if (organismKey === "psychro" || organismKey === "shewanella") {
+    return { O2: -base * 0.45, CO2: base * 0.45 };
   }
-  if (organismKey === "deinococcus") {
-    return { CO2: -base * 0.42, O2: base * 0.2, N2: base * 0.04 };
-  }
-  return { CO2: -base * 0.58, O2: base * 0.4, N2: base * 0.03 };
+  return {};
 }
 
 function leakAtmosphere(dt) {
@@ -534,7 +559,7 @@ function drawFields(width, height) {
       const env = envAt(x / width, y / height);
       const tempAlpha = clamp((env.temp + 120) / 180, 0, 1) * 0.14;
       const saltAlpha = clamp(env.salt / 100, 0, 1) * 0.16;
-      const radAlpha = clamp(env.rad / 100, 0, 1) * 0.24;
+      const radAlpha = clamp(Math.log10(env.rad + 1) / 4, 0, 1) * 0.24;
       ctx.fillStyle = `rgba(240, 106, 92, ${radAlpha})`;
       ctx.fillRect(x, y, cell, cell);
       ctx.fillStyle = `rgba(103, 215, 230, ${saltAlpha})`;
@@ -631,7 +656,7 @@ function updateHud() {
   document.querySelector("#metabolism").textContent = metabolismSummary(local);
   const organism = organisms[organismKey];
   document.querySelector("#conditionRange").textContent =
-    `${organism.temp[0]}~${organism.temp[1]}°C · 방사선 ${organism.rad[0]}~${organism.rad[1]} · 압력 ${organism.pressure[0]}~${organism.pressure[1]}`;
+    `${organism.temp[0]}~${organism.temp[1]}°C · 방사선 ${organism.rad[0]}~${organism.rad[1]} mSv/day`;
   updateCriteriaText();
 
   const sorted = Object.keys(atmosphere)
@@ -652,26 +677,25 @@ function updateCriteriaText() {
 }
 
 function criteriaText(world, organism) {
-  const atmosphereText = Object.entries(world.atmosphere)
-    .map(([gas, value]) => `${gas} ${value}%`)
-    .join(", ");
   const gasNeedText = organism.gasNeed
     ? Object.entries(organism.gasNeed).map(([gas, range]) => `${gas} ${range[0]}~${range[1]}%`).join(", ")
     : "특정 기체 제한 없음";
   return [
     `[${world.name} 초기 환경]`,
-    `대기: ${atmosphereText}`,
-    `온도: ${world.env.tempTop}~${world.env.tempBottom}°C`,
-    `염도: ${world.env.saltTop}~${world.env.saltBottom}`,
-    `방사선: ${world.env.radTop}~${world.env.radBottom}`,
+    `대기: ${world.facts.atmosphere}`,
+    `온도: ${world.facts.temperature}`,
+    `압력: ${world.facts.pressure}`,
+    `방사선: ${world.facts.radiation}`,
+    `염도: ${world.facts.salinity}`,
     "",
     `[${organism.name} 생존 조건]`,
     `온도: ${organism.temp[0]}~${organism.temp[1]}°C`,
-    `염도: ${organism.salt[0]}~${organism.salt[1]}`,
-    `방사선: ${organism.rad[0]}~${organism.rad[1]}`,
-    `압력: ${organism.pressure[0]}~${organism.pressure[1]}`,
+    `염도: ${organism.salt[0]}~${organism.salt[1]} ppt`,
+    `방사선: ${organism.rad[0]}~${organism.rad[1]} mSv/day`,
+    `압력: ${organism.pressure[0]}~${organism.pressure[1]} mbar/상대압`,
     `필요 기체: ${gasNeedText}`,
-    `대사: ${organism.metabolism}`
+    `대사: ${organism.metabolism}`,
+    `근거: ${organism.evidence}`
   ].join("\n");
 }
 
@@ -703,14 +727,33 @@ function averageLocalEnv() {
 }
 
 function snapshotAtmosphere() {
+  const env = sampledEnvironment();
   return {
     elapsed,
     CO2: gasRatio("CO2"),
     O2: gasRatio("O2"),
     CH4: gasRatio("CH4"),
     N2: gasRatio("N2"),
-    H2O: gasRatio("H2O")
+    H2O: gasRatio("H2O"),
+    H2: gasRatio("H2"),
+    temp: env.temp,
+    rad: env.rad
   };
+}
+
+function sampledEnvironment() {
+  const points = [
+    [0.25, 0.3], [0.5, 0.3], [0.75, 0.3],
+    [0.25, 0.62], [0.5, 0.62], [0.75, 0.62],
+    [0.5, 0.82]
+  ];
+  const sum = points.reduce((acc, [x, y]) => {
+    const env = envAt(x, y);
+    acc.temp += env.temp;
+    acc.rad += env.rad;
+    return acc;
+  }, { temp: 0, rad: 0 });
+  return { temp: sum.temp / points.length, rad: sum.rad / points.length };
 }
 
 function drawGasChart() {
@@ -719,7 +762,8 @@ function drawGasChart() {
   chartCtx.clearRect(0, 0, width, height);
   chartCtx.fillStyle = "rgba(255,255,255,.62)";
   chartCtx.font = "11px Segoe UI, Malgun Gothic, sans-serif";
-  chartCtx.fillText("시간에 따른 대기 변화", 10, 18);
+  const mode = graphSelect.value;
+  chartCtx.fillText(mode === "gas" ? "시간에 따른 대기 변화" : mode === "temp" ? "시간에 따른 평균 온도 변화" : "시간에 따른 평균 방사선 변화", 10, 18);
   chartCtx.strokeStyle = "rgba(255,255,255,.12)";
   chartCtx.lineWidth = 1;
   for (let i = 1; i < 4; i += 1) {
@@ -730,7 +774,12 @@ function drawGasChart() {
     chartCtx.stroke();
   }
 
-  const gases = ["CO2", "O2", "CH4", "N2", "H2O"].filter((gas) => gasHistory.some((point) => point[gas] > 0.05));
+  if (mode !== "gas") {
+    drawSingleMetric(mode, width, height);
+    return;
+  }
+
+  const gases = ["CO2", "O2", "CH4", "N2", "H2O", "H2"].filter((gas) => gasHistory.some((point) => point[gas] > 0.05));
   gases.forEach((gas) => {
     chartCtx.strokeStyle = gasColors[gas] || "#fff";
     chartCtx.lineWidth = gas === "CO2" ? 2.5 : 2;
@@ -743,6 +792,28 @@ function drawGasChart() {
     });
     chartCtx.stroke();
   });
+}
+
+function drawSingleMetric(metric, width, height) {
+  const values = gasHistory.map((point) => point[metric]).filter((value) => Number.isFinite(value));
+  if (!values.length) return;
+  const min = metric === "temp" ? Math.min(-220, ...values) : 0;
+  const max = metric === "temp" ? Math.max(50, ...values) : Math.max(1, ...values);
+  const color = metric === "temp" ? gasColors.CH4 : gasColors.CO2;
+  chartCtx.strokeStyle = color;
+  chartCtx.lineWidth = 2.5;
+  chartCtx.beginPath();
+  gasHistory.forEach((point, index) => {
+    const value = point[metric];
+    const x = 10 + (width - 20) * (gasHistory.length <= 1 ? 0 : index / (gasHistory.length - 1));
+    const y = height - 12 - (height - 42) * clamp((value - min) / Math.max(max - min, 1e-6), 0, 1);
+    if (index === 0) chartCtx.moveTo(x, y);
+    else chartCtx.lineTo(x, y);
+  });
+  chartCtx.stroke();
+  const latest = values.at(-1);
+  chartCtx.fillStyle = color;
+  chartCtx.fillText(metric === "temp" ? `${latest.toFixed(1)}°C` : `${latest.toFixed(3)} mSv/day`, 10, height - 10);
 }
 
 function loop(now) {
