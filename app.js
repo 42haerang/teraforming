@@ -470,12 +470,12 @@ function update(dt) {
       }
     }
 
-    const searchPull = 0.22 + clamp(elapsed / 90, 0, 1) * 0.8;
-    const roaming = 0.006 * (1 - clamp(elapsed / 120, 0, 0.72));
+    const searchPull = 0.12 + clamp(elapsed / 45, 0, 1) * 1.75;
+    const roaming = 0.01 * (1 - clamp(elapsed / 80, 0, 0.85));
     agent.vx = agent.vx * 0.58 + (best.x - agent.x) * searchPull + spreadX * 0.014 + (Math.random() - 0.5) * roaming;
     agent.vy = agent.vy * 0.58 + (best.y - agent.y) * searchPull + spreadY * 0.014 + (Math.random() - 0.5) * roaming;
-    agent.x = clamp(agent.x + agent.vx * dt * 1.4, 0.04, 0.96);
-    agent.y = clamp(agent.y + agent.vy * dt * 1.4, 0.16, 0.94);
+    agent.x = clamp(agent.x + agent.vx * dt * 1.9, 0.04, 0.96);
+    agent.y = clamp(agent.y + agent.vy * dt * 1.9, 0.16, 0.94);
     agent.fitness = fitnessAt(agent.x, agent.y);
     const gasScore = gasSuitability(organism);
     const refugeScore = refugeScoreAt(agent.x, agent.y);
