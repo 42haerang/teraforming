@@ -13,7 +13,10 @@ const worlds = {
       radiation: "표면 약 0.67 mSv/day",
       salinity: "염수 가능, 전 행성 평균 염도 직접값 없음(예상값)"
     },
-    env: { tempTop: -82, tempBottom: -24, saltTop: 2, saltBottom: 55, radTop: 0.67, radBottom: 0.05, pressureTop: 6.35, pressureBottom: 30, energyTop: 40, energyBottom: 55 }
+    env: { tempTop: -82, tempBottom: -24, saltTop: 2, saltBottom: 55, radTop: 0.67, radBottom: 0.05, pressureTop: 6.35, pressureBottom: 30, energyTop: 40, energyBottom: 55 },
+    refuges: [
+      { name: "지하 얼음층/차폐 배양돔(예상값)", x: 0.36, y: 0.62, r: 0.18, temp: 24, rad: 0.03, pressure: 80, energy: 78, salt: 18 }
+    ]
   },
   europa: {
     name: "유로파",
@@ -29,7 +32,10 @@ const worlds = {
       radiation: "표면 강한 목성 방사선, 얼음 아래 급감(예상값)",
       salinity: "지하 바다 염분 존재 가능, 범위는 해수 유사 가정(예상값)"
     },
-    env: { tempTop: -160, tempBottom: 2, saltTop: 0, saltBottom: 35, radTop: 5400, radBottom: 0.01, pressureTop: 0.001, pressureBottom: 100, energyTop: 5, energyBottom: 82 }
+    env: { tempTop: -160, tempBottom: 2, saltTop: 0, saltBottom: 35, radTop: 5400, radBottom: 0.01, pressureTop: 0.001, pressureBottom: 100, energyTop: 5, energyBottom: 82 },
+    refuges: [
+      { name: "얼음 아래 바다/열수구 근처(예상값)", x: 0.68, y: 0.76, r: 0.2, temp: 18, rad: 0.01, pressure: 80, energy: 95, salt: 35 }
+    ]
   },
   enceladus: {
     name: "엔셀라두스",
@@ -45,7 +51,10 @@ const worlds = {
       radiation: "토성권 방사선 낮음~중간, 내부 바다에서는 차폐(예상값)",
       salinity: "내부 바다 염분 존재 가능(예상값)"
     },
-    env: { tempTop: -200, tempBottom: 16, saltTop: 1, saltBottom: 35, radTop: 0.2, radBottom: 0.005, pressureTop: 0.001, pressureBottom: 80, energyTop: 18, energyBottom: 95 }
+    env: { tempTop: -200, tempBottom: 16, saltTop: 1, saltBottom: 35, radTop: 0.2, radBottom: 0.005, pressureTop: 0.001, pressureBottom: 80, energyTop: 18, energyBottom: 95 },
+    refuges: [
+      { name: "내부 바다/분출공 열수 환경(예상값)", x: 0.68, y: 0.77, r: 0.22, temp: 58, rad: 0.005, pressure: 80, energy: 98, salt: 35 }
+    ]
   }
 };
 
@@ -293,9 +302,17 @@ function spawnAgent() {
   const world = worlds[worldKey];
   const organism = organisms[organismKey];
   const oceanBias = world.ocean ? 0.58 : 0.36;
+  const refuge = (world.refuges || [])[0];
+  const seedNearRefuge = refuge && Math.random() < 0.45;
+  const x = seedNearRefuge
+    ? clamp(refuge.x + (Math.random() - 0.5) * refuge.r * 1.6, 0.04, 0.96)
+    : 0.18 + Math.random() * 0.64;
+  const y = seedNearRefuge
+    ? clamp(refuge.y + (Math.random() - 0.5) * refuge.r * 1.6, 0.16, 0.94)
+    : oceanBias + Math.random() * 0.32;
   return {
-    x: 0.18 + Math.random() * 0.64,
-    y: oceanBias + Math.random() * 0.32,
+    x,
+    y,
     vx: 0,
     vy: 0,
     energy: 0.65 + Math.random() * 0.35,
@@ -314,13 +331,27 @@ function envAt(x, y) {
   const subShield = !world.ocean && y > 0.43 ? 0.7 : 0;
   climate = climateEffects();
   const localShield = clamp(climate.shielding + iceShield * 0.35 + subShield, 0, 0.88);
-  return {
+  const baseEnv = {
     temp: lerp(e.tempTop, e.tempBottom, depth) + climate.greenhouse + vent * 48 + Math.sin(x * Math.PI * 2 + elapsed * 0.06) * 3,
     salt: lerp(e.saltTop, e.saltBottom, depth) + vent * 8,
     rad: Math.max(0, lerp(e.radTop, e.radBottom, depth) * (1 - localShield)),
     pressure: clamp(lerp(e.pressureTop, e.pressureBottom, depth) + climate.pressureBoost, 0, 100),
     energy: clamp(lerp(e.energyTop, e.energyBottom, depth) + vent * 38, 0, 100)
   };
+  return applyRefugeEnvironment(baseEnv, x, y, world);
+}
+
+function applyRefugeEnvironment(baseEnv, x, y, world) {
+  let env = { ...baseEnv };
+  for (const refuge of world.refuges || []) {
+    const influence = Math.exp(-(((x - refuge.x) ** 2 + (y - refuge.y) ** 2) / (refuge.r ** 2)));
+    env.temp = lerp(env.temp, refuge.temp + climate.greenhouse * 0.25, influence);
+    env.rad = lerp(env.rad, refuge.rad, influence);
+    env.pressure = lerp(env.pressure, refuge.pressure, influence);
+    env.energy = lerp(env.energy, refuge.energy, influence);
+    env.salt = lerp(env.salt, refuge.salt, influence);
+  }
+  return env;
 }
 
 function atmosphereTotal() {
@@ -352,6 +383,14 @@ function scoreRange(value, range) {
   return clamp(1 - distance / Math.max(radius, 1), 0, 1);
 }
 
+function survivalRangeScore(value, range) {
+  const [min, max] = range;
+  if (value >= min && value <= max) return 1;
+  const span = Math.max(max - min, 1e-6);
+  if (value < min) return clamp(1 - (min - value) / span, 0, 1);
+  return clamp(1 - (value - max) / span, 0, 1);
+}
+
 function gasRangeScore(value, range) {
   const [min, max] = range;
   if (value < min) return clamp(value / Math.max(min, 0.01), 0, 1);
@@ -369,11 +408,11 @@ function fitnessAt(x, y) {
   const organism = organisms[organismKey];
   const env = envAt(x, y);
   const scores = [
-    scoreRange(env.temp, organism.temp),
-    scoreRange(env.salt, organism.salt),
-    scoreRange(env.rad, organism.rad),
-    scoreRange(env.pressure, organism.pressure),
-    scoreRange(env.energy, organism.energy)
+    survivalRangeScore(env.temp, organism.temp),
+    survivalRangeScore(env.salt, organism.salt),
+    survivalRangeScore(env.rad, organism.rad),
+    survivalRangeScore(env.pressure, organism.pressure),
+    survivalRangeScore(env.energy, organism.energy)
   ];
   const localScore = scores.reduce((sum, score) => sum + score, 0) / scores.length;
   return localScore * (0.15 + gasSuitability(organism) * 0.85);
@@ -388,17 +427,17 @@ function update(dt) {
     const here = fitnessAt(agent.x, agent.y);
     let best = { x: agent.x, y: agent.y, score: here };
 
-    for (let i = 0; i < 8; i += 1) {
+    for (let i = 0; i < 14; i += 1) {
       const angle = Math.random() * Math.PI * 2;
-      const distance = 0.018 + Math.random() * 0.035;
+      const distance = 0.015 + Math.random() * 0.055;
       const nx = clamp(agent.x + Math.cos(angle) * distance, 0.04, 0.96);
       const ny = clamp(agent.y + Math.sin(angle) * distance, 0.16, 0.94);
       const score = fitnessAt(nx, ny);
       if (score > best.score) best = { x: nx, y: ny, score };
     }
 
-    agent.vx = agent.vx * 0.82 + (best.x - agent.x) * 2.1 + (Math.random() - 0.5) * 0.006;
-    agent.vy = agent.vy * 0.82 + (best.y - agent.y) * 2.1 + (Math.random() - 0.5) * 0.006;
+    agent.vx = agent.vx * 0.78 + (best.x - agent.x) * 2.7 + (Math.random() - 0.5) * 0.004;
+    agent.vy = agent.vy * 0.78 + (best.y - agent.y) * 2.7 + (Math.random() - 0.5) * 0.004;
     agent.x = clamp(agent.x + agent.vx * dt * 9, 0.04, 0.96);
     agent.y = clamp(agent.y + agent.vy * dt * 9, 0.16, 0.94);
     agent.fitness = fitnessAt(agent.x, agent.y);
@@ -528,10 +567,37 @@ function draw() {
   ctx.fillRect(0, 0, width, height);
 
   drawLayers(width, height, world);
+  drawRefuges(width, height, world);
   drawFields(width, height);
   drawAgents(width, height, organism);
   drawAtmosphereTint(width, height);
   drawOrbitLines(width, height);
+}
+
+function drawRefuges(width, height, world) {
+  for (const refuge of world.refuges || []) {
+    const x = refuge.x * width;
+    const y = refuge.y * height;
+    const r = refuge.r * Math.min(width, height);
+    const glow = ctx.createRadialGradient(x, y, 0, x, y, r);
+    glow.addColorStop(0, "rgba(112, 215, 123, .22)");
+    glow.addColorStop(0.65, "rgba(103, 215, 230, .1)");
+    glow.addColorStop(1, "rgba(103, 215, 230, 0)");
+    ctx.fillStyle = glow;
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = "rgba(112, 215, 123, .35)";
+    ctx.lineWidth = 1.4;
+    ctx.setLineDash([6, 8]);
+    ctx.beginPath();
+    ctx.arc(x, y, r * 0.72, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = "rgba(248, 251, 247, .78)";
+    ctx.font = "700 12px Segoe UI, Malgun Gothic, sans-serif";
+    ctx.fillText("보호 서식지", x - r * 0.52, y - r * 0.58);
+  }
 }
 
 function drawLayers(width, height, world) {
@@ -687,6 +753,7 @@ function criteriaText(world, organism) {
     `압력: ${world.facts.pressure}`,
     `방사선: ${world.facts.radiation}`,
     `염도: ${world.facts.salinity}`,
+    `보호 서식지: ${(world.refuges || []).map((refuge) => refuge.name).join(", ")}`,
     "",
     `[${organism.name} 생존 조건]`,
     `온도: ${organism.temp[0]}~${organism.temp[1]}°C`,
