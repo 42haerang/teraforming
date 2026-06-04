@@ -567,7 +567,7 @@ function applyMetabolism(dt) {
 }
 
 function gasExchange(organism, env, fitness) {
-  const activity = Math.max(0, fitness - 0.34) * gasSuitability(organism) * 0.00022;
+  const activity = Math.max(0, fitness - 0.34) * gasSuitability(organism) * 0.006;
   const energyBonus = clamp(env.energy / 100, 0.2, 1.25);
   const pressureBonus = clamp(env.pressure / 65, 0.18, 1.2);
   const base = activity * energyBonus * pressureBonus;
